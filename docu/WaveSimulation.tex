@@ -1,0 +1,126 @@
+\documentclass[10pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\author{Sarah Steinbrecher}
+\title{2D Wave Simulation}
+\begin{document}
+
+\section{Grundlagen}
+
+\subsection{Approximative Ableitung zweiter Ordnung}
+
+Rechter Differenzenquotient
+\[ f'(x) \approx \frac{ f(x + h) - f(x) }{ h }  \]
+
+Zentraler Differenzenquotient Zeiter Ordnung
+\[ f''(x) \approx \frac{ f'( x + \frac{h}{2} ) - f'( x - \frac{h}{2} ) } { h }   \]
+
+Zentraler Differenzenquotient 1
+\[ f'( x + \frac{h}{2} ) \approx \frac{ f( x + h ) - f( x ) } { h }   \]
+
+Zentraler Differenzenquotient 2
+\[ f'( x - \frac{h}{2} ) \approx \frac{ f( x ) - f( x - h ) } { h }   \]
+
+Zentraler Differenzenquotient Zeiter Ordnung
+\[ f''(x) \approx \frac{ f( x + h ) - 2f(x) +  f( x - h )} { h^2 }   \]
+
+\subsection{Laplace Operator}
+
+\[ \Delta f = \Sigma^{n}_{k=1} \frac{\partial^2 f}{\partial x_k^2}   \]
+
+
+\section{2D Wellen Simulation}
+
+\subsection{Wellengleichung}
+
+\[ \frac{\partial^2 u}{\partial t^2} -  \Delta_\mathbf{x} u(t, \mathbf{x}) = 0 \]
+
+\subsection{Differentialdarstellung einer 1D Wellengleichung}
+
+\[ z = u(t, x) \]
+
+\[ \frac{\partial^2 u}{\partial t^2} = \frac{\partial^2 u}{\partial x^2} \]
+
+Einsetzen der Approximativen Ableitung zweiter Ordnung (Verlet Methode)
+
+\[ \frac{ u(t+\tau,x) - 2 u(t,x) + u(t-\tau,x) }{\tau^2} = \frac{ u(t,x+h) - 2 u(t,x) + u(t,x-h) }{h^2}  \]
+
+Umgeformt
+
+\[ u(t+\tau,x) = 2 u(t,x) + u(t-\tau,x) + \frac{\tau^2}{h^2}  ( u(t,x+h) - 2 u(t,x) + u(t,x-h) ) \]
+
+
+\subsection{Differentialdarstellung einer 2D Wellengleichung}
+
+\[ z = u(t, x, y) \]
+
+\[ \frac{\partial^2 u}{\partial t^2} = \frac{\partial^2 u}{\partial x^2} + \frac{\partial^2 u}{\partial y^2} \]
+
+Einsetzen der Approximativen Ableitung zweiter Ordnung (Verlet Methode)
+
+\[ \frac{ u(t+\tau,x) - 2 u(t,x,y) + u(t-\tau,x,y) }{\tau^2} = \]
+\[ \frac{ u(t,x+h,y) - 2 u(t,x,y) + u(t,x-h,y) }{h^2} + \frac{ u(t,x,y+h) - 2 u(t,x,y) + u(t,x,y-h) }{h^2}  \]
+
+Umgeformt
+
+\[ u(t+\tau,x,y) = \]
+\[  2 u(t,x,y) - u(t-\tau,x,y) + \frac{\tau^2}{h^2}  [ u(t,x+h,y)  + u(t,x-h,y) + u(t,x,y+h) + u(t,x,y-h) - 4u(t,x,y) ] \]
+
+Kernel
+
+
+\[
+u(t+\tau,x,y) = 2 u(t,x,y) - u(t-\tau,x,y) + \frac{\tau^2}{h^2} 
+\begin{pmatrix}
+  & 1 &  \\
+1 & -4 & 1\\
+  & 1 & \\
+\end{pmatrix}
+\]
+
+\subsection{Startbedingung}
+
+Gegeben $ u_0, v_0 $
+
+\[ u_1 = u_0 + (u_0 - u_1) + \tau^2 u_0''  \]
+
+\[ (u_0 - u_1) \approx \tau v_0 \]
+
+\subsection{Randbedingungen}
+
+Normalableitung ist 0 
+
+n ... Einheitsnormalenvektor, welcher nach außen zeigt
+
+n ist der Normalenvektor zu $\Gamma $
+
+$\Gamma $ ist eine Linie, welche das Quadrat umgrenzt
+
+$\Gamma ... Boundary$
+
+
+\[ \frac{\partial u}{\partial \vec{n}} = 0 \]
+
+\[ \forall x,y \in \Gamma \]
+
+Approximativen Ableitung zweiter Ordnung am unteren Rand
+
+\[ u(t+\tau,x,y) = \]
+\[  2 u(t,x,y) - u(t-\tau,x,y) + \frac{\tau^2}{h^2}  [ u(t,x+h,y)  + u(t,x-h,y) + u(t,x,y+h) + 0 - 3u(t,x,y) ] \]
+
+Kernel am unteren Rand
+
+\[
+u(t+\tau,x,y) = 2 u(t,x,y) - u(t-\tau,x,y) + \frac{\tau^2}{h^2} 
+\begin{pmatrix}
+  & 1 &  \\
+1 & -3 & 1\\
+  & 0 & \\
+\end{pmatrix}
+\]
+
+
+
+\end{document}
