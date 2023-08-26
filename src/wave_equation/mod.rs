@@ -17,9 +17,9 @@
 /// * 
 /// 
 pub fn wave_equation_step<const M:usize, const N:usize>(
-    previous: &[[f32;M];N], 
-    current: &[[f32;M];N], 
-    next: &mut [[f32;M];N],
+    previous: &[[f32;N];M], 
+    current:  &[[f32;N];M], 
+    next: &mut [[f32;N];M],
     delta_t: f32,
     delta_h: f32)
 {
