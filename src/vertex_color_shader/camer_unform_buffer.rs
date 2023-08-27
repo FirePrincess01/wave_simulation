@@ -6,7 +6,7 @@
 
 
 use super::camera_uniform;
-use wgpu::{util::{DeviceExt}};
+use wgpu::util::DeviceExt;
 
 pub struct CameraUniformBuffer{
     camera_buffer: wgpu::Buffer,

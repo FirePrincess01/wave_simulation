@@ -16,7 +16,9 @@ pub struct Mesh
     vertex_buffer: wgpu::Buffer,
     color_buffer: wgpu::Buffer,
     index_buffer: wgpu::Buffer,
+    num_indices: u32,
     instance_buffer: wgpu::Buffer,
+    num_instances: u32,
 }
 
 impl Mesh
@@ -51,6 +53,8 @@ impl Mesh
             }
         );
 
+        let num_indices = indices.len() as u32;
+
         let instance_data = instances.iter().map(instance::Instance::to_raw).collect::<Vec<_>>();
         let instance_buffer = device.create_buffer_init(
             &wgpu::util::BufferInitDescriptor {
@@ -60,11 +64,15 @@ impl Mesh
             }
         );
 
+        let num_instances = instance_data.len() as u32;
+
         Self {
             vertex_buffer,
             color_buffer,
             index_buffer,
+            num_indices,
             instance_buffer,
+            num_instances,
         }
     }
 
@@ -106,6 +114,10 @@ impl Mesh
             render_pass.set_index_buffer(
                 self.index_buffer.slice(..), 
                 wgpu::IndexFormat::Uint16);
+
+            render_pass.set_vertex_buffer(2, self.instance_buffer.slice(..));
+
+            render_pass.draw_indexed(0..self.num_indices, 0, 0..self.num_instances);
             
         }
 
