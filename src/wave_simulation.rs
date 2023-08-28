@@ -6,6 +6,8 @@
 
 use super::vertex_color_shader;
 use super::wgpu_renderer;
+use super::geometry;
+use super::wave_equation;
 
 use cgmath::Point3;
 
@@ -17,6 +19,10 @@ use winit::{
 
 #[cfg(target_arch="wasm32")]
 use wasm_bindgen::prelude::*;
+
+const M: usize = 100;
+const N: usize = 200;
+const MN: usize = M * N;
 
 struct WaveSimulation
 {   
@@ -33,20 +39,21 @@ struct WaveSimulation
     camera_uniform_buffer: vertex_color_shader::CameraUniformBuffer,
 
     // render data
-    grid: vertex_color_shader::Mesh,
-    
-    // data
-    grid_vertices: Vec<vertex_color_shader::Vertex>,
-    grid_colors: Vec<vertex_color_shader::Color>,
-    _grid_indices: Vec<u16>,
+    grid_host: geometry::Grid<M, N, MN>,
+    grid_device: vertex_color_shader::Mesh,
     grid_instances: Vec<vertex_color_shader::Instance>,
 
     // input
     mouse_pressed: bool,
+
+    // simulation
+    wave_equation: wave_equation::WaveEquation<M, N>,
 }
 
 impl WaveSimulation
 {
+    
+
     async fn new(window: &Window) -> Self
     {
         let mut wgpu_renderer = wgpu_renderer::WgpuRenderer::new(&window).await;
@@ -75,27 +82,30 @@ impl WaveSimulation
             &mut wgpu_renderer.device(), 
             pipeline.camera_bind_group_layout());
 
-        const VERTICES: &[vertex_color_shader::Vertex] = &[
-            vertex_color_shader::vertex::Vertex { position: [-0.0868241, 0.49240386, 0.0] }, // A
-            vertex_color_shader::vertex::Vertex { position: [-0.49513406, 0.06958647, 0.0] }, // B
-            vertex_color_shader::vertex::Vertex { position: [-0.21918549, -0.44939706, 0.0] }, // C
-            vertex_color_shader::vertex::Vertex { position: [0.35966998, -0.3473291, 0.0] }, // D
-            vertex_color_shader::vertex::Vertex { position: [0.44147372, 0.2347359, 0.0] }, // E
-        ];
 
-        const COLORS: &[vertex_color_shader::Color] = &[
-            vertex_color_shader::color::Color { color: [0.5, 0.0, 0.5] }, // A
-            vertex_color_shader::color::Color { color: [0.5, 0.0, 0.5] }, // B
-            vertex_color_shader::color::Color { color: [0.5, 0.0, 0.5] }, // C
-            vertex_color_shader::color::Color { color: [0.5, 0.0, 0.5] }, // D
-            vertex_color_shader::color::Color { color: [0.5, 0.0, 0.5] }, // E
-        ];
+        // const VERTICES: &[vertex_color_shader::Vertex] = &[
+        //     vertex_color_shader::vertex::Vertex { position: [-0.0868241, 0.49240386, 0.0] }, // A
+        //     vertex_color_shader::vertex::Vertex { position: [-0.49513406, 0.06958647, 0.0] }, // B
+        //     vertex_color_shader::vertex::Vertex { position: [-0.21918549, -0.44939706, 0.0] }, // C
+        //     vertex_color_shader::vertex::Vertex { position: [0.35966998, -0.3473291, 0.0] }, // D
+        //     vertex_color_shader::vertex::Vertex { position: [0.44147372, 0.2347359, 0.0] }, // E
+        // ];
 
-        const INDICES: &[u16] = &[
-            0, 1, 4,
-            1, 2, 4,
-            2, 3, 4,
-        ];
+        // const COLORS: &[vertex_color_shader::Color] = &[
+        //     vertex_color_shader::color::Color { color: [0.5, 0.0, 0.5] }, // A
+        //     vertex_color_shader::color::Color { color: [0.5, 0.0, 0.5] }, // B
+        //     vertex_color_shader::color::Color { color: [0.5, 0.0, 0.5] }, // C
+        //     vertex_color_shader::color::Color { color: [0.5, 0.0, 0.5] }, // D
+        //     vertex_color_shader::color::Color { color: [0.5, 0.0, 0.5] }, // E
+        // ];
+
+        // const INDICES: &[u16] = &[
+        //     0, 1, 4,
+        //     1, 2, 4,
+        //     2, 3, 4,
+        // ];
+
+        let grid_host: geometry::Grid<M, N, MN> = geometry::Grid::new();
 
         const INSTANCES: &[vertex_color_shader::Instance] = &[ 
             vertex_color_shader::Instance{
@@ -104,18 +114,20 @@ impl WaveSimulation
             },
         ];
 
-        let grid_vertices = Vec::from(VERTICES);
-        let grid_colors = Vec::from(COLORS);
-        let grid_indices = Vec::from(INDICES);
+        // let grid_vertices = Vec::from(VERTICES);
+        // let grid_colors = Vec::from(COLORS);
+        // let grid_indices = Vec::from(INDICES);
         let grid_instances = Vec::from(INSTANCES);
 
-        let grid = vertex_color_shader::Mesh::new(
+        let grid_device = vertex_color_shader::Mesh::new(
             &mut wgpu_renderer.device(),
-            &grid_vertices,
-            &grid_colors,
-            &grid_indices,
+            &grid_host.vertices_slice(),
+            &grid_host.colors_slice(),
+            &grid_host.indices_slice(),
             &grid_instances,
         );
+
+        let wave_equation: wave_equation::WaveEquation<M, N> = wave_equation::WaveEquation::new();
 
         Self {
             wgpu_renderer,
@@ -128,14 +140,17 @@ impl WaveSimulation
             camera_uniform,
             camera_uniform_buffer,
 
-            grid,
+            grid_host,
+            grid_device,
     
-            grid_vertices,
-            grid_colors,
-            _grid_indices: grid_indices,
+            // grid_vertices,
+            // grid_colors,
+            // _grid_indices: grid_indices,
             grid_instances,
 
-            mouse_pressed: false
+            mouse_pressed: false,
+
+            wave_equation,
         }
     }
 
@@ -172,12 +187,47 @@ impl WaveSimulation
                 self.mouse_pressed = *state == ElementState::Pressed;
                 true
             }
+            WindowEvent::MouseInput {
+                button: MouseButton::Right,
+                state,
+                ..
+            } => {
+                self.wave_equation.get_previous_mut()[M/2][N/2] = 1.0;
+                self.wave_equation.get_current_mut()[M/2][N/2] = 1.0;
+                true
+            }
             _ => false,
+        }
+    }
+
+    fn wave_equation_to_gird_host(&mut self) {
+        for y in 0..M {
+            for x in 0..N {
+
+                let val = self.wave_equation.get_current()[y][x] * 10.0;
+                let val_colour = val * 100.0 + 500.0;
+
+                let gradient = colorous::TURBO;
+                let color = gradient.eval_rational(val_colour.min(1000.0).max(0.0) as usize, 2000);
+
+                let r =   color.r as f32 / 255.0;
+                let g = color.g as f32 / 255.0;
+                let b = color.b as f32 / 255.0;
+
+                self.grid_host.colors[y][x].color = [r, g, b];
+                self.grid_host.vertices[y][x].position[2] = val
+            }
         }
     }
 
     fn update(&mut self, dt: instant::Duration) {
         // simulation
+
+        // calculate simulation step
+        self.wave_equation.step();
+        
+        // convert to colours
+        self.wave_equation_to_gird_host();
 
 
         // camera
@@ -186,9 +236,9 @@ impl WaveSimulation
         self.camera_uniform_buffer.update(self.wgpu_renderer.queue(), self.camera_uniform);
 
         // mesh
-        self.grid.update_vetex_buffer(&mut self.wgpu_renderer.queue(), &self.grid_vertices);
-        self.grid.update_color_buffer(&mut self.wgpu_renderer.queue(), &self.grid_colors);
-        self.grid.update_instance_buffer(&mut self.wgpu_renderer.queue(), &self.grid_instances);
+        self.grid_device.update_vetex_buffer(&mut self.wgpu_renderer.queue(), &self.grid_host.vertices_slice());
+        self.grid_device.update_color_buffer(&mut self.wgpu_renderer.queue(), &self.grid_host.colors_slice());
+        self.grid_device.update_instance_buffer(&mut self.wgpu_renderer.queue(), &self.grid_instances);
     }
 
     fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
@@ -230,26 +280,7 @@ impl WaveSimulation
 
             self.camera_uniform_buffer.bind(&mut render_pass);
 
-            self.grid.draw(&mut render_pass)
-
-            // self.grid.
-
-            // render_pass.set_pipeline(&self.render_pipeline);
-            // render_pass.set_bind_group(0, &self.camera_bind_group, &[]);
-
-            // render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
-            // render_pass.set_vertex_buffer(1, self.color_buffer_sun.slice(..));
-            
-            // render_pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
-            
-            // // sun
-            // render_pass.set_vertex_buffer(2, self.instance_buffer.slice(..));
-            // render_pass.draw_indexed(0..self.num_indices, 0, 0..1 as u32);
-
-            // // planet
-            // render_pass.set_vertex_buffer(1, self.color_buffer.slice(..));
-            // render_pass.draw_indexed(0..self.num_indices, 0, 1..self.instances.len() as u32);
-
+            self.grid_device.draw(&mut render_pass)
         }
 
         self.wgpu_renderer.queue().submit(std::iter::once(encoder.finish()));

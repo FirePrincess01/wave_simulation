@@ -80,7 +80,7 @@ impl Mesh
     {   
         let data = bytemuck::cast_slice(&vertices);
 
-        if self.vertex_buffer.size() == vertices.len() as u64 {
+        if self.vertex_buffer.size() == data.len() as u64 {
             queue.write_buffer(&self.vertex_buffer, 0, data);
         }
     }

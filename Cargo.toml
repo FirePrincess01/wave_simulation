@@ -17,6 +17,8 @@ bytemuck = { version = "1.12", features = [ "derive" ] }
 cgmath = "0.18"
 glam = "0.24"
 instant = "0.1"
+# other
+colorous = "1.0"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 console_error_panic_hook = "0.1.6"
