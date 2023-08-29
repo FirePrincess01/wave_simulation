@@ -32,9 +32,9 @@ impl<const M:usize, const N:usize>  WaveEquation<M, N>{
 
     pub fn step(&mut self) {
 
-        let mut previous: &[[f32; N]; M] = &*self.previous;
-        let mut current =  &*self.current;
-        let mut next = &mut *self.next;
+        let previous: &[[f32; N]; M] = &*self.previous;
+        let current =  &*self.current;
+        let next = &mut *self.next;
 
         let delta_t = self.delta_t;
         let h = self.h;

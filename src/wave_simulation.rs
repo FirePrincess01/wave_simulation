@@ -212,7 +212,7 @@ impl WaveSimulation
                 let b = color.b as f32 / 255.0;
 
                 self.grid_host.colors[y][x].color = [r, g, b];
-                self.grid_host.vertices[y][x].position[2] = val * 50.0;
+                self.grid_host.vertices[y][x].position[2] = val * 1.0;
             }
         }
     }
