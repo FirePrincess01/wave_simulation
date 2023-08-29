@@ -52,8 +52,6 @@ struct WaveSimulation
 
 impl WaveSimulation
 {
-    
-
     async fn new(window: &Window) -> Self
     {
         let mut wgpu_renderer = wgpu_renderer::WgpuRenderer::new(&window).await;
@@ -189,11 +187,10 @@ impl WaveSimulation
             }
             WindowEvent::MouseInput {
                 button: MouseButton::Right,
-                state,
+                state: ElementState::Pressed,
                 ..
             } => {
-                self.wave_equation.get_previous_mut()[M/2][N/2] = 1.0;
-                self.wave_equation.get_current_mut()[M/2][N/2] = 1.0;
+                self.wave_equation.add_impulse(M/2, N/2);
                 true
             }
             _ => false,
@@ -204,18 +201,18 @@ impl WaveSimulation
         for y in 0..M {
             for x in 0..N {
 
-                let val = self.wave_equation.get_current()[y][x] * 10.0;
-                let val_colour = val * 100.0 + 500.0;
+                let val = self.wave_equation.get_current()[y][x];
+                let val_colour = ((val + 1.0) * 0.5) as f64;
 
-                let gradient = colorous::TURBO;
-                let color = gradient.eval_rational(val_colour.min(1000.0).max(0.0) as usize, 2000);
+                let gradient = colorous::COOL;
+                let color = gradient.eval_continuous(val_colour);
 
                 let r =   color.r as f32 / 255.0;
                 let g = color.g as f32 / 255.0;
                 let b = color.b as f32 / 255.0;
 
                 self.grid_host.colors[y][x].color = [r, g, b];
-                self.grid_host.vertices[y][x].position[2] = val
+                self.grid_host.vertices[y][x].position[2] = val * 50.0;
             }
         }
     }
