@@ -1,14 +1,15 @@
+#![feature(new_uninit)]
+
 //! A general purpose shader using vertices, colors and instances
 //!
 //! Vertices and Colors are independently updateable
 //! The implementation uses wgpu for rendering
 //!
 
-use super::vertex_color_shader;
-use super::wgpu_renderer;
-use super::geometry;
-use super::wave_equation;
-
+mod vertex_color_shader;
+mod wgpu_renderer;
+mod geometry;
+mod wave_equation;
 use cgmath::Point3;
 
 use winit::{
@@ -288,11 +289,14 @@ impl WaveSimulation
 }
 
 
+
 // runs the event loop
+#[cfg_attr(target_arch="wasm32", wasm_bindgen(start))]
 pub async fn run()
 {
     // We need to toggle what logger we are using based on if we are in WASM land or not. 
     cfg_if::cfg_if! {
+        
         if #[cfg(target_arch = "wasm32")] {
             std::panic::set_hook(Box::new(console_error_panic_hook::hook));
             console_log::init_with_level(log::Level::Warn).expect("Couldn't initialize logger");
