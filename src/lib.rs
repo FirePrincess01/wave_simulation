@@ -21,8 +21,8 @@ use winit::{
 #[cfg(target_arch="wasm32")]
 use wasm_bindgen::prelude::*;
 
-const M: usize = 100;
-const N: usize = 200;
+const M: usize = 80;
+const N: usize = 70;
 const MN: usize = M * N;
 
 struct WaveSimulation
@@ -59,9 +59,9 @@ impl WaveSimulation
         let surface_format = wgpu_renderer.config().format;
         let pipeline = vertex_color_shader::Pipeline::new(&mut wgpu_renderer.device(), surface_format);
 
-        let position = Point3::new(0.0, 5.0, 10.0);
+        let position = Point3::new(0.0, 0.0, 67.0);
         let yaw = cgmath::Deg(-90.0);
-        let pitch = cgmath::Deg(-20.0);
+        let pitch = cgmath::Deg(0.0);
         let camera = wgpu_renderer::camera::Camera::new(position, yaw, pitch);
 
         let speed = 1.0;
@@ -108,7 +108,7 @@ impl WaveSimulation
 
         const INSTANCES: &[vertex_color_shader::Instance] = &[ 
             vertex_color_shader::Instance{
-                position: glam::Vec3::ZERO,
+                position: glam::Vec3::new(-((N/2) as f32), -((M/2) as f32), 0.0),
                 rotation: glam::Quat::IDENTITY,
             },
         ];
@@ -179,7 +179,7 @@ impl WaveSimulation
                 true
             }
             WindowEvent::MouseInput {
-                button: MouseButton::Left,
+                button: MouseButton::Right,
                 state,
                 ..
             } => {
@@ -187,7 +187,7 @@ impl WaveSimulation
                 true
             }
             WindowEvent::MouseInput {
-                button: MouseButton::Right,
+                button: MouseButton::Left,
                 state: ElementState::Pressed,
                 ..
             } => {
@@ -309,13 +309,16 @@ pub async fn run()
     let event_loop = EventLoop::new();
     let window = WindowBuilder::new().build(&event_loop).unwrap();
 
+    use winit::dpi::PhysicalSize;
+        window.set_inner_size(PhysicalSize::new(700, 800));
+
     // we need to add a canvas to the HTML document that we will host our application
     #[cfg(target_arch = "wasm32")]
     {
         // Winit prevents sizing with CSS, so we have to set
         // the size manually when on web.
-        use winit::dpi::PhysicalSize;
-        window.set_inner_size(PhysicalSize::new(450, 400));
+        // use winit::dpi::PhysicalSize;
+        // window.set_inner_size(PhysicalSize::new(600, 800));
         
         use winit::platform::web::WindowExtWebSys;
         web_sys::window()
