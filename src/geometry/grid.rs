@@ -1,5 +1,3 @@
-
-
 //! Creates a triangulated 2D grid
 //!
 

@@ -1,3 +1,5 @@
+//! Container for the parameters of the camera
+//!
 
 use cgmath::*;
 

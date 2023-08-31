@@ -1,9 +1,6 @@
 #![feature(new_uninit)]
 
-//! A general purpose shader using vertices, colors and instances
-//!
-//! Vertices and Colors are independently updateable
-//! The implementation uses wgpu for rendering
+//! The main file of the application
 //!
 
 mod vertex_color_shader;

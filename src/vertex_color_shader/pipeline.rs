@@ -1,4 +1,4 @@
-//! A general purpose shader using vertices, colors and instances
+//! A general purpose pipeline using vertices, colors and instances
 //!
 //! Vertices and Colors are independently updateable
 //! The implementation uses wgpu for rendering

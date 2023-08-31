@@ -1,3 +1,6 @@
+//! Tracks key and mouse inputs to move the camera
+//!
+
 use winit::event::*;
 use winit::dpi::PhysicalPosition;
 use cgmath::*;

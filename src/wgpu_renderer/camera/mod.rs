@@ -1,3 +1,5 @@
+//! Root file for the camera
+//!
 
 pub mod camera;
 pub mod camera_controller;

@@ -1,8 +1,9 @@
-//! A general purpose shader using vertices, colors and instance matrices
+//! A general purpose pipeline using vertices, colors and instances
 //!
 //! Vertices and Colors are independently updateable
 //! The implementation uses wgpu for rendering
 //!
+
 
 pub mod vertex;
 pub mod color;

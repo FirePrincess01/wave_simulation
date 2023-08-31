@@ -1,7 +1,4 @@
-//! A general purpose shader using vertices, colors and instances
-//!
-//! Vertices and Colors are independently updateable
-//! The implementation uses wgpu for rendering
+//! Contains the device buffers to render an object with this shader
 //!
 
 use super::vertex;

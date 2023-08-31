@@ -1,4 +1,5 @@
-
+//! Instantiates the device to render with wgpu
+//!
 
 pub mod camera;
 pub mod texture;

@@ -1,3 +1,5 @@
+//! The CameraUniform struct used in the shader
+//!
 
 use super::super::wgpu_renderer;
 use cgmath::prelude::*;

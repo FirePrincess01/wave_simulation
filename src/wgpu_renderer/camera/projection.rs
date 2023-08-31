@@ -1,3 +1,6 @@
+//! Container for the parameters of a projection matrix
+//!
+
 use cgmath::*;
 
 #[rustfmt::skip]

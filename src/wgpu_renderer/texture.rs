@@ -1,5 +1,5 @@
-
-
+//! Container an description of a texture for wgpu
+//!
 
 pub struct Texture {
     pub texture: wgpu::Texture,

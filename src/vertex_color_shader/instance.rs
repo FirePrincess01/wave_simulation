@@ -1,3 +1,5 @@
+//! Contains the position and the rotation of an object
+//!
 
 #[derive(Copy, Clone)]
 pub struct Instance {

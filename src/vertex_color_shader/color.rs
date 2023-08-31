@@ -1,3 +1,5 @@
+//! The Color struct used in the shader
+//!
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]

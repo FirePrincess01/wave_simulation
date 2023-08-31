@@ -1,3 +1,5 @@
+//! The Vertex struct used in the shader
+//!
 
 use wgpu;
 

@@ -1,9 +1,5 @@
-//! A general purpose shader using vertices, colors and instances
+//! Contains a buffer for the CameraUniform struct
 //!
-//! Vertices and Colors are independently updateable
-//! The implementation uses wgpu for rendering
-//!
-
 
 use super::camera_uniform;
 use wgpu::util::DeviceExt;
