@@ -23,7 +23,7 @@ impl Mesh
     pub fn new(device: &mut wgpu::Device, 
         vertices: &[vertex::Vertex],
         colors: &[color::Color],
-        indices: &[u16],
+        indices: &[u32],
         instances: &[instance::Instance]) -> Self
     {
         let vertex_buffer = device.create_buffer_init(
@@ -110,7 +110,7 @@ impl Mesh
             
             render_pass.set_index_buffer(
                 self.index_buffer.slice(..), 
-                wgpu::IndexFormat::Uint16);
+                wgpu::IndexFormat::Uint32);
 
             render_pass.set_vertex_buffer(2, self.instance_buffer.slice(..));
 
