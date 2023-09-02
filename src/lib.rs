@@ -11,6 +11,7 @@ mod performance_monitor;
 mod mouse_selector;
 
 use cgmath::Point3;
+use cgmath::prelude::*;
 
 use winit::{
     event::*,
