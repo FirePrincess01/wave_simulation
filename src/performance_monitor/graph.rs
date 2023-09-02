@@ -88,7 +88,7 @@ impl Graph {
         }
     }
 
-    fn create_line(last_update_time: std::time::Instant, update_time: std::time::Instant, watchpoints: &[watch::Watchpoint]) -> Vec<f32>
+    fn create_line(last_update_time: instant::Instant, update_time: instant::Instant, watchpoints: &[watch::Watchpoint]) -> Vec<f32>
     {
         let len = watchpoints.len()*2 + 2;
         let mut line: Vec<f32> = vec![0.0; len];
@@ -132,7 +132,7 @@ impl Graph {
 }
 
 impl watch::Viewer for Graph {
-    fn update(&mut self, last_update_time: std::time::Instant, update_time: std::time::Instant, watchpoints: &[watch::Watchpoint])
+    fn update(&mut self, last_update_time: instant::Instant, update_time: instant::Instant, watchpoints: &[watch::Watchpoint])
     {
         if watchpoints.len() != self.watchpoints_size {
             return;

@@ -2,6 +2,9 @@
 name = "wave_simulation"
 version = "0.1.0"
 edition = "2021"
+repository = "https://github.com/FirePrincess01/wave_simulation"
+description = "Simulation of a Wave Equation using the Verlet Method"
+license-file = "LICENSE"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

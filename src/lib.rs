@@ -453,7 +453,7 @@ pub async fn run()
 
     let mut state = WaveSimulation::new(&window).await;
 
-    let mut last_render_time: std::time::Instant = instant::Instant::now();
+    let mut last_render_time = instant::Instant::now();
 
     event_loop.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Poll;
