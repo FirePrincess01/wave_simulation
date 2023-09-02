@@ -7,7 +7,7 @@ use super::super::vertex_color_shader::Color as Color;
 pub struct Grid<const M:usize, const N:usize, const MN: usize> {
     pub vertices: Box<[[Vertex; N]; M]>,
     pub colors: Box<[[Color; N]; M]>,
-    pub indices: Vec<u16>,
+    pub indices: Vec<u32>,
 }
 
 impl<const M:usize, const N:usize, const MN: usize> Grid<M, N, MN> {
@@ -41,14 +41,14 @@ impl<const M:usize, const N:usize, const MN: usize> Grid<M, N, MN> {
                 let i = (y * (N-1) + x) * 6;
 
                 // A, B, C,
-                indices[i+0] = ((y + 0) * N + (x + 0)) as u16;
-                indices[i+1] = ((y + 0) * N + (x + 1)) as u16;
-                indices[i+2] = ((y + 1) * N + (x + 1)) as u16;
+                indices[i+0] = ((y + 0) * N + (x + 0)) as u32;
+                indices[i+1] = ((y + 0) * N + (x + 1)) as u32;
+                indices[i+2] = ((y + 1) * N + (x + 1)) as u32;
 
                 // C, D, A,
-                indices[i+3] = ((y + 1) * N + (x + 1)) as u16;
-                indices[i+4] = ((y + 1) * N + (x + 0)) as u16;
-                indices[i+5] = ((y + 0) * N + (x + 0)) as u16;
+                indices[i+3] = ((y + 1) * N + (x + 1)) as u32;
+                indices[i+4] = ((y + 1) * N + (x + 0)) as u32;
+                indices[i+5] = ((y + 0) * N + (x + 0)) as u32;
             }
         }
 
@@ -71,7 +71,7 @@ impl<const M:usize, const N:usize, const MN: usize> Grid<M, N, MN> {
         data
     }
 
-    pub fn indices_slice(&self) -> &[u16] {
+    pub fn indices_slice(&self) -> &[u32] {
         self.indices.as_slice()
     }
 }

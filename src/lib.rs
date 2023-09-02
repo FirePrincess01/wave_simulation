@@ -7,6 +7,8 @@ mod vertex_color_shader;
 mod wgpu_renderer;
 mod geometry;
 mod wave_equation;
+mod performance_monitor;
+
 use cgmath::Point3;
 
 use winit::{
@@ -27,6 +29,7 @@ struct WaveSimulation
     // wgpu_renderer
     wgpu_renderer : wgpu_renderer::WgpuRenderer,
     pipeline: vertex_color_shader::Pipeline,
+    pipeline_lines: vertex_color_shader::Pipeline,
 
     // camera
     camera: wgpu_renderer::camera::Camera,
@@ -36,6 +39,9 @@ struct WaveSimulation
     camera_uniform: vertex_color_shader::CameraUniform,
     camera_uniform_buffer: vertex_color_shader::CameraUniformBuffer,
 
+    camera_uniform_orthographic: vertex_color_shader::CameraUniform,
+    camera_uniform_orthographic_buffer: vertex_color_shader::CameraUniformBuffer,
+
     // render data
     grid_host: geometry::Grid<M, N, MN>,
     grid_device: vertex_color_shader::Mesh,
@@ -43,9 +49,15 @@ struct WaveSimulation
 
     // input
     mouse_pressed: bool,
+    show_performance_graph: bool,
 
     // simulation
     wave_equation: wave_equation::WaveEquation<M, N>,
+
+    // performance monitor
+    watch: performance_monitor::Watch<4>,
+    graph_host: performance_monitor::Graph,
+    graph_device: vertex_color_shader::Mesh,
 }
 
 impl WaveSimulation
@@ -55,6 +67,7 @@ impl WaveSimulation
         let mut wgpu_renderer = wgpu_renderer::WgpuRenderer::new(&window).await;
         let surface_format = wgpu_renderer.config().format;
         let pipeline = vertex_color_shader::Pipeline::new(&mut wgpu_renderer.device(), surface_format);
+        let pipeline_lines = vertex_color_shader::Pipeline::new_lines(&mut wgpu_renderer.device(), surface_format);
 
         let position = Point3::new(0.0, 0.0, 67.0);
         let yaw = cgmath::Deg(-90.0);
@@ -78,6 +91,13 @@ impl WaveSimulation
             &mut wgpu_renderer.device(), 
             pipeline.camera_bind_group_layout());
 
+        let camera_uniform_orthographic: vertex_color_shader::CameraUniform = vertex_color_shader::CameraUniform::new_orthographic(width, height);
+        let mut camera_uniform_orthographic_buffer = vertex_color_shader::CameraUniformBuffer::new(
+                &mut wgpu_renderer.device(), 
+                pipeline_lines.camera_bind_group_layout());
+
+        camera_uniform_orthographic_buffer.update(wgpu_renderer.queue(), camera_uniform_orthographic);   // add uniform identity matrix
+
 
         // const VERTICES: &[vertex_color_shader::Vertex] = &[
         //     vertex_color_shader::vertex::Vertex { position: [-0.0868241, 0.49240386, 0.0] }, // A
@@ -95,7 +115,7 @@ impl WaveSimulation
         //     vertex_color_shader::color::Color { color: [0.5, 0.0, 0.5] }, // E
         // ];
 
-        // const INDICES: &[u16] = &[
+        // const INDICES: &[u32] = &[
         //     0, 1, 4,
         //     1, 2, 4,
         //     2, 3, 4,
@@ -125,9 +145,27 @@ impl WaveSimulation
 
         let wave_equation: wave_equation::WaveEquation<M, N> = wave_equation::WaveEquation::new();
 
+        // performance monitor
+        const WATCHPOINTS_SIZE: usize  = 4;
+        let watch: performance_monitor::Watch<WATCHPOINTS_SIZE> = performance_monitor::Watch::new(); 
+        let graph_host = performance_monitor::Graph::new(WATCHPOINTS_SIZE);
+        let graph_instance = vertex_color_shader::Instance{
+            position: glam::Vec3::ZERO,
+            rotation: glam::Quat::IDENTITY,
+        };
+        let graph_instances = [graph_instance];
+        let graph_device = vertex_color_shader::Mesh::new(
+            &mut wgpu_renderer.device(),
+            &graph_host.vertices.as_slice(),
+            &graph_host.colors.as_slice(),
+            &graph_host.indices.as_slice(),
+            &graph_instances,
+        );
+
         Self {
             wgpu_renderer,
             pipeline,
+            pipeline_lines,
 
             camera,
             camera_controller,
@@ -136,17 +174,22 @@ impl WaveSimulation
             camera_uniform,
             camera_uniform_buffer,
 
+            camera_uniform_orthographic,
+            camera_uniform_orthographic_buffer,
+
             grid_host,
             grid_device,
     
-            // grid_vertices,
-            // grid_colors,
-            // _grid_indices: grid_indices,
             grid_instances,
 
             mouse_pressed: false,
+            show_performance_graph: false,
 
             wave_equation,
+
+            watch,
+            graph_host,
+            graph_device,
         }
     }
 
@@ -157,11 +200,26 @@ impl WaveSimulation
     fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>) {
         self.projection.resize(new_size.width, new_size.height);
         self.wgpu_renderer.resize(new_size);
+
+        self.camera_uniform_orthographic.resize_orthographic(new_size.width, new_size.height);
+        self.camera_uniform_orthographic_buffer.update(self.wgpu_renderer.queue(), self.camera_uniform_orthographic);
     }
     
 
     fn input(&mut self, event: &WindowEvent) -> bool {
         match event {
+            WindowEvent::KeyboardInput {
+                input:
+                    KeyboardInput {
+                        virtual_keycode: Some(VirtualKeyCode::F2),
+                        state: ElementState::Pressed,
+                        ..
+                    },
+                ..
+            } => { 
+                self.show_performance_graph = !self.show_performance_graph;
+                true
+            },
             WindowEvent::KeyboardInput {
                 input:
                     KeyboardInput {
@@ -217,13 +275,16 @@ impl WaveSimulation
 
     fn update(&mut self, dt: instant::Duration) {
         // simulation
-
+        
         // calculate simulation step
-        self.wave_equation.step();
+        self.watch.start(1);
+            self.wave_equation.step();
+        self.watch.stop(1);
         
         // convert to colours
-        self.wave_equation_to_gird_host();
-
+        self.watch.start(2);
+            self.wave_equation_to_gird_host();
+        self.watch.stop(2);
 
         // camera
         self.camera_controller.update_camera(&mut self.camera, dt);
@@ -231,9 +292,16 @@ impl WaveSimulation
         self.camera_uniform_buffer.update(self.wgpu_renderer.queue(), self.camera_uniform);
 
         // mesh
+        self.watch.start(3);
         self.grid_device.update_vetex_buffer(&mut self.wgpu_renderer.queue(), &self.grid_host.vertices_slice());
         self.grid_device.update_color_buffer(&mut self.wgpu_renderer.queue(), &self.grid_host.colors_slice());
         self.grid_device.update_instance_buffer(&mut self.wgpu_renderer.queue(), &self.grid_instances);
+        self.watch.stop(3);
+
+        // performance monitor
+        self.watch.update();
+        self.watch.update_viewer(&mut self.graph_host);
+        self.graph_device.update_vetex_buffer(&mut self.wgpu_renderer.queue(), self.graph_host.vertices.as_slice());
     }
 
     fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
@@ -271,15 +339,25 @@ impl WaveSimulation
                 }) 
             });
 
+            // grid
             self.pipeline.bind(&mut render_pass);
 
             self.camera_uniform_buffer.bind(&mut render_pass);
 
-            self.grid_device.draw(&mut render_pass)
+            self.grid_device.draw(&mut render_pass);
+
+            // performance monitor
+            if self.show_performance_graph {
+                self.pipeline_lines.bind(&mut render_pass);
+                self.camera_uniform_orthographic_buffer.bind(&mut render_pass);
+                self.graph_device.draw(&mut render_pass);
+            }
         }
 
-        self.wgpu_renderer.queue().submit(std::iter::once(encoder.finish()));
-        output.present();
+        self.watch.start(0);
+            self.wgpu_renderer.queue().submit(std::iter::once(encoder.finish()));
+            output.present();
+        self.watch.stop(0);
         
         Ok(())
     }
@@ -333,7 +411,7 @@ pub async fn run()
 
     let mut state = WaveSimulation::new(&window).await;
 
-    let mut last_render_time = instant::Instant::now();
+    let mut last_render_time: std::time::Instant = instant::Instant::now();
 
     event_loop.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Poll;
