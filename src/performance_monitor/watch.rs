@@ -4,13 +4,13 @@
 #[derive(Copy, Clone)]
 pub struct Watchpoint
 {
-    pub start: std::time::Instant,
-    pub stop: std::time::Instant,
+    pub start: instant::Instant,
+    pub stop: instant::Instant,
 }
 
 impl Watchpoint {
 
-    fn new(t: std::time::Instant) -> Self {
+    fn new(t: instant::Instant) -> Self {
         Self {
             start: t,
             stop: t,
@@ -20,20 +20,20 @@ impl Watchpoint {
 
 pub struct Watch<const SIZE:usize>
 {
-    last_update_time: std::time::Instant,
-    update_time: std::time::Instant,
+    last_update_time: instant::Instant,
+    update_time: instant::Instant,
     watchpoints: [Watchpoint; SIZE],
 }
 
 pub trait Viewer {
-    fn update(&mut self, last_update_time: std::time::Instant, update_time: std::time::Instant, watchpoints: &[Watchpoint]);
+    fn update(&mut self, last_update_time: instant::Instant, update_time: instant::Instant, watchpoints: &[Watchpoint]);
 }
 
 
 impl <const SIZE:usize> Watch<SIZE>{
 
     pub fn new() -> Self {
-        let now = std::time::Instant::now();        
+        let now = instant::Instant::now();        
         let last_update_time = now;
         let update_time = now;
         let watchpoints = [Watchpoint::new(now); SIZE];
@@ -47,20 +47,20 @@ impl <const SIZE:usize> Watch<SIZE>{
 
     pub fn start(&mut self, index: usize) {
         if index < SIZE {
-            let now = std::time::Instant::now();
+            let now = instant::Instant::now();
             self.watchpoints[index].start = now;
         }
     }
 
     pub fn stop(&mut self, index: usize) {
         if index < SIZE {
-            let now = std::time::Instant::now();
+            let now = instant::Instant::now();
             self.watchpoints[index].stop = now;
         }
     }
 
     pub fn update(&mut self) {
-        let now = std::time::Instant::now();
+        let now = instant::Instant::now();
         self.last_update_time = self.update_time;
         self.update_time = now;
     }
