@@ -8,6 +8,7 @@ mod wgpu_renderer;
 mod geometry;
 mod wave_equation;
 mod performance_monitor;
+mod mouse_selector;
 
 use cgmath::Point3;
 
@@ -20,9 +21,10 @@ use winit::{
 #[cfg(target_arch="wasm32")]
 use wasm_bindgen::prelude::*;
 
-const M: usize = 80;
-const N: usize = 70;
+const M: usize = 80*4;
+const N: usize = 70*4;
 const MN: usize = M * N;
+const WAVE_INDEX: usize = 0;    //The index of the wave instance
 
 struct WaveSimulation
 {   
@@ -48,8 +50,10 @@ struct WaveSimulation
     grid_instances: Vec<vertex_color_shader::Instance>,
 
     // input
-    mouse_pressed: bool,
+    mouse_pressed_camera: bool,
+    mouse_pressed_forces: bool,
     show_performance_graph: bool,
+    mouse_selector: mouse_selector::MouseSelector,
 
     // simulation
     wave_equation: wave_equation::WaveEquation<M, N>,
@@ -69,7 +73,7 @@ impl WaveSimulation
         let pipeline = vertex_color_shader::Pipeline::new(&mut wgpu_renderer.device(), surface_format);
         let pipeline_lines = vertex_color_shader::Pipeline::new_lines(&mut wgpu_renderer.device(), surface_format);
 
-        let position = Point3::new(0.0, 0.0, 67.0);
+        let position = Point3::new(0.0, 0.0, 67.0*4.0);
         let yaw = cgmath::Deg(-90.0);
         let pitch = cgmath::Deg(0.0);
         let camera = wgpu_renderer::camera::Camera::new(position, yaw, pitch);
@@ -135,6 +139,9 @@ impl WaveSimulation
         // let grid_indices = Vec::from(INDICES);
         let grid_instances = Vec::from(INSTANCES);
 
+        //hacked FoV, application appears to use a multiplicator of exactly 1.5
+        let mouse_selector = mouse_selector::MouseSelector::new(width, height, (fovy / 2.).tan() * 1.5, grid_instances[WAVE_INDEX]);
+
         let grid_device = vertex_color_shader::Mesh::new(
             &mut wgpu_renderer.device(),
             &grid_host.vertices_slice(),
@@ -182,8 +189,10 @@ impl WaveSimulation
     
             grid_instances,
 
-            mouse_pressed: false,
+            mouse_pressed_camera: false,
+            mouse_pressed_forces: false,
             show_performance_graph: false,
+            mouse_selector,
 
             wave_equation,
 
@@ -194,17 +203,18 @@ impl WaveSimulation
     }
 
     fn mouse_pressed(&self) -> bool {
-        self.mouse_pressed
+        self.mouse_pressed_camera
     }
 
     fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>) {
         self.projection.resize(new_size.width, new_size.height);
         self.wgpu_renderer.resize(new_size);
-
+        
         self.camera_uniform_orthographic.resize_orthographic(new_size.width, new_size.height);
         self.camera_uniform_orthographic_buffer.update(self.wgpu_renderer.queue(), self.camera_uniform_orthographic);
+        
+        self.mouse_selector.resize(new_size.width, new_size.height);
     }
-    
 
     fn input(&mut self, event: &WindowEvent) -> bool {
         match event {
@@ -238,22 +248,40 @@ impl WaveSimulation
                 state,
                 ..
             } => {
-                self.mouse_pressed = *state == ElementState::Pressed;
+                self.mouse_pressed_camera = *state == ElementState::Pressed;
                 true
             }
             WindowEvent::MouseInput {
                 button: MouseButton::Left,
-                state: ElementState::Pressed,
+                state,//ElementState::Pressed,
                 ..
             } => {
-                self.wave_equation.add_impulse(M/2, N/2);
+                self.mouse_pressed_forces = *state == ElementState::Pressed;
+                true
+            } 
+            WindowEvent::Touch(touch) => {
+                match touch.phase {
+                    TouchPhase::Started => {
+                        self.mouse_pressed_forces = true;
+                        self.mouse_selector.calc_mouse_position_on_screen(touch.location.x as f32, touch.location.y as f32);
+                    },
+                    TouchPhase::Ended => {self.mouse_pressed_forces = false;},
+                    TouchPhase::Cancelled => {self.mouse_pressed_forces = false;},
+                    TouchPhase::Moved => {
+                        self.mouse_selector.calc_mouse_position_on_screen(touch.location.x as f32, touch.location.y as f32);
+                    },
+                }
+                true
+            } 
+            WindowEvent::CursorMoved { position, .. } => {
+                self.mouse_selector.calc_mouse_position_on_screen(position.x as f32, position.y as f32);
                 true
             }
             _ => false,
         }
     }
 
-    fn wave_equation_to_gird_host(&mut self) {
+    fn wave_equation_to_grid_host(&mut self) {
         for y in 0..M {
             for x in 0..N {
 
@@ -274,8 +302,19 @@ impl WaveSimulation
     }
 
     fn update(&mut self, dt: instant::Duration) {
-        // simulation
-        
+
+        // camera
+        self.camera_controller.update_camera(&mut self.camera, dt);
+        self.camera_uniform.update_view_proj(&self.camera, &self.projection);
+        self.camera_uniform_buffer.update(self.wgpu_renderer.queue(), self.camera_uniform);
+
+       // simulation
+        // Apply forces
+        if self.mouse_pressed_forces {
+            let (y,x) = self.mouse_selector.mouse_position_on_grid(&self.camera);
+            self.wave_equation.add_impulse(y, x);
+        }
+
         // calculate simulation step
         self.watch.start(1);
             self.wave_equation.step();
@@ -283,13 +322,8 @@ impl WaveSimulation
         
         // convert to colours
         self.watch.start(2);
-            self.wave_equation_to_gird_host();
+            self.wave_equation_to_grid_host();
         self.watch.stop(2);
-
-        // camera
-        self.camera_controller.update_camera(&mut self.camera, dt);
-        self.camera_uniform.update_view_proj(&self.camera, &self.projection);
-        self.camera_uniform_buffer.update(self.wgpu_renderer.queue(), self.camera_uniform);
 
         // mesh
         self.watch.start(3);
