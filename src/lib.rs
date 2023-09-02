@@ -199,7 +199,22 @@ impl WaveSimulation
             } => {
                 self.mouse_pressed_forces = *state == ElementState::Pressed;
                 true
-            } WindowEvent::CursorMoved { position, .. } => {
+            } 
+            WindowEvent::Touch(touch) => {
+                match touch.phase {
+                    TouchPhase::Started => {
+                        self.mouse_pressed_forces = true;
+                        self.mouse_selector.calc_mouse_position_on_screen(touch.location.x as f32, touch.location.y as f32);
+                    },
+                    TouchPhase::Ended => {self.mouse_pressed_forces = false;},
+                    TouchPhase::Cancelled => {self.mouse_pressed_forces = false;},
+                    TouchPhase::Moved => {
+                        self.mouse_selector.calc_mouse_position_on_screen(touch.location.x as f32, touch.location.y as f32);
+                    },
+                }
+                true
+            } 
+            WindowEvent::CursorMoved { position, .. } => {
                 self.mouse_selector.calc_mouse_position_on_screen(position.x as f32, position.y as f32);
                 true
             }
