@@ -11,7 +11,7 @@ pub mod instance;
 pub mod mesh;
 pub mod pipeline;
 pub mod camera_uniform;
-pub mod camer_unform_buffer;
+pub mod camera_uniform_buffer;
 
 pub use vertex::Vertex;
 pub use color::Color;
@@ -20,5 +20,5 @@ pub use instance::InstanceRaw;
 pub use mesh::Mesh;
 pub use pipeline::Pipeline;
 pub use camera_uniform::CameraUniform;
-pub use camer_unform_buffer::CameraUniformBuffer;
+pub use camera_uniform_buffer::CameraUniformBuffer;
 
