@@ -10,6 +10,10 @@ pub struct Vertex {
 }
 
 impl Vertex {
+    pub fn zero() -> Self {
+        Self { position: [0.0, 0.0, 0.0] }
+    }
+
     pub fn desc<'a>() -> wgpu::VertexBufferLayout<'a> {
         wgpu::VertexBufferLayout {
             array_stride: std::mem::size_of::<Vertex>() as wgpu::BufferAddress,

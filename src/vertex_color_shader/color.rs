@@ -8,6 +8,14 @@ pub struct Color {
 }
 
 impl Color {
+    pub fn _black() -> Self {
+        Self { color: [0.0, 0.0, 0.0] }
+    }
+
+    pub fn white() -> Self {
+        Self { color: [1.0, 1.0, 1.0] }
+    }
+ 
     pub fn desc<'a>() -> wgpu::VertexBufferLayout<'a> {
         wgpu::VertexBufferLayout {
             array_stride: std::mem::size_of::<Color>() as wgpu::BufferAddress,
