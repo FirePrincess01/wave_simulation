@@ -32,8 +32,8 @@ impl Graph {
         Vertex { position: [Self::OFFSET_X as f32 + Self::NR_LINES as f32, Self::OFFSET_Y as f32 + Self::LEN_PER_MICRO * Self::DURATION_120FPS.as_micros() as f32, 0.0] },
         Vertex { position: [Self::OFFSET_X as f32,                         Self::OFFSET_Y as f32 + Self::LEN_PER_MICRO * Self::DURATION_60FPS.as_micros() as f32, 0.0] }, 
         Vertex { position: [Self::OFFSET_X as f32 + Self::NR_LINES as f32, Self::OFFSET_Y as f32 + Self::LEN_PER_MICRO * Self::DURATION_60FPS.as_micros() as f32, 0.0] }, 
-        Vertex { position: [Self::OFFSET_X as f32,                         Self::OFFSET_Y as f32 + Self::LEN_PER_MICRO * Self::DURATION_30FPS.as_micros() as f32, 0.0] }, 
-        Vertex { position: [Self::OFFSET_X as f32 + Self::NR_LINES as f32, Self::OFFSET_Y as f32 + Self::LEN_PER_MICRO * Self::DURATION_30FPS.as_micros() as f32, 0.0] }, 
+        // Vertex { position: [Self::OFFSET_X as f32,                         Self::OFFSET_Y as f32 + Self::LEN_PER_MICRO * Self::DURATION_30FPS.as_micros() as f32, 0.0] }, 
+        // Vertex { position: [Self::OFFSET_X as f32 + Self::NR_LINES as f32, Self::OFFSET_Y as f32 + Self::LEN_PER_MICRO * Self::DURATION_30FPS.as_micros() as f32, 0.0] }, 
     ];
 
 
