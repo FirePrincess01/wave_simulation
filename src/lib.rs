@@ -79,10 +79,11 @@ impl WaveSimulation
         let pipeline = vertex_color_shader::Pipeline::new(&mut wgpu_renderer.device(), surface_format);
         let pipeline_lines = vertex_color_shader::Pipeline::new_lines(&mut wgpu_renderer.device(), surface_format);
 
-        let position = Point3::new(0.0, 0.0, 67.0*4.0);
-        let yaw = cgmath::Deg(-90.0);
+        let position = Point3::new(0.0, 0.0, 0.0);
+        let yaw = cgmath::Deg(0.0);
         let pitch = cgmath::Deg(0.0);
-        let camera = wgpu_renderer::camera::Camera::new(position, yaw, pitch);
+        let mut camera = wgpu_renderer::camera::Camera::new(position, yaw, pitch);
+        Self::top_view_point(&mut camera);
 
         let speed = 1.0;
         let sensitivity = 1.0;
@@ -219,6 +220,26 @@ impl WaveSimulation
         self.scale_factor = scale_factor;
     }
 
+    fn top_view_point(camera: &mut wgpu_renderer::camera::Camera) {
+        let position = Point3::new(0.0, 0.0, 67.0*4.0);
+        let yaw = cgmath::Deg(-90.0).into();
+        let pitch = cgmath::Deg(0.0).into();
+
+        camera.position = position;
+        camera.yaw = yaw;
+        camera.pitch = pitch;
+    }
+
+    fn side_view_point(camera: &mut wgpu_renderer::camera::Camera) {
+        let position = Point3::new(0.0, -(50.0 * 4.0), 55.0);
+        let yaw = cgmath::Deg(-90.0).into();
+        let pitch = cgmath::Deg(60.0).into();
+
+        camera.position = position;
+        camera.yaw = yaw;
+        camera.pitch = pitch;
+    }
+
     fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>) {
         self.size = new_size;
         
@@ -243,6 +264,30 @@ impl WaveSimulation
                 ..
             } => { 
                 self.show_performance_graph = !self.show_performance_graph;
+                true
+            },
+            WindowEvent::KeyboardInput {
+                input:
+                    KeyboardInput {
+                        virtual_keycode: Some(VirtualKeyCode::Key1),
+                        state: ElementState::Pressed,
+                        ..
+                    },
+                ..
+            } => { 
+                Self::top_view_point(&mut self.camera);
+                true
+            },
+            WindowEvent::KeyboardInput {
+                input:
+                    KeyboardInput {
+                        virtual_keycode: Some(VirtualKeyCode::Key2),
+                        state: ElementState::Pressed,
+                        ..
+                    },
+                ..
+            } => { 
+                Self::side_view_point(&mut self.camera);
                 true
             },
             WindowEvent::KeyboardInput {
