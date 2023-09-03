@@ -221,6 +221,7 @@ impl WaveSimulation
 
     fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>) {
         self.size = new_size;
+        
         self.projection.resize(new_size.width, new_size.height);
         self.wgpu_renderer.resize(new_size);
         
