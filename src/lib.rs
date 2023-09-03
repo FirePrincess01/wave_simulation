@@ -29,6 +29,9 @@ const WAVE_INDEX: usize = 0;    //The index of the wave instance
 
 struct WaveSimulation
 {   
+    size: winit::dpi::PhysicalSize<u32>,
+    scale_factor: f32,
+
     // wgpu_renderer
     wgpu_renderer : wgpu_renderer::WgpuRenderer,
     pipeline: vertex_color_shader::Pipeline,
@@ -69,6 +72,8 @@ impl WaveSimulation
 {
     async fn new(window: &Window) -> Self
     {
+        let size = window.inner_size();
+        let scale_factor = window.scale_factor() as f32;
         let mut wgpu_renderer = wgpu_renderer::WgpuRenderer::new(&window).await;
         let surface_format = wgpu_renderer.config().format;
         let pipeline = vertex_color_shader::Pipeline::new(&mut wgpu_renderer.device(), surface_format);
@@ -171,6 +176,9 @@ impl WaveSimulation
         );
 
         Self {
+            size,
+            scale_factor,
+
             wgpu_renderer,
             pipeline,
             pipeline_lines,
@@ -207,7 +215,12 @@ impl WaveSimulation
         self.mouse_pressed_camera
     }
 
+    fn update_scale_factor(&mut self, scale_factor: f32) {
+        self.scale_factor = scale_factor;
+    }
+
     fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>) {
+        self.size = new_size;
         self.projection.resize(new_size.width, new_size.height);
         self.wgpu_renderer.resize(new_size);
         
@@ -262,10 +275,13 @@ impl WaveSimulation
                 true
             } 
             WindowEvent::Touch(touch) => {
+                let x_pos = touch.location.x as f32 / self.scale_factor ;
+                let y_pos = touch.location.y as f32 / self.scale_factor ;
+
                 match touch.phase {
                     TouchPhase::Started => {
                         self.mouse_pressed_forces = true;
-                        self.mouse_selector.calc_mouse_position_on_screen(touch.location.x as f32, touch.location.y as f32);
+                        self.mouse_selector.calc_mouse_position_on_screen(x_pos, y_pos);
                     }
                     TouchPhase::Ended => {
                         self.mouse_pressed_forces = false;
@@ -276,13 +292,16 @@ impl WaveSimulation
                         self.wave_equation.interupt_mouse();
                     }
                     TouchPhase::Moved => {
-                        self.mouse_selector.calc_mouse_position_on_screen(touch.location.x as f32, touch.location.y as f32);
+                        self.mouse_selector.calc_mouse_position_on_screen(x_pos, y_pos);
                     }
                 }
                 true
             } 
             WindowEvent::CursorMoved { position, .. } => {
-                self.mouse_selector.calc_mouse_position_on_screen(position.x as f32, position.y as f32);
+                let x_pos = position.x as f32 / self.scale_factor;
+                let y_pos = position.y as f32 / self.scale_factor;
+
+                self.mouse_selector.calc_mouse_position_on_screen(x_pos, y_pos);
                 true
             }
             _ => false,
@@ -427,7 +446,7 @@ pub async fn run()
     let window = WindowBuilder::new().build(&event_loop).unwrap();
 
     use winit::dpi::PhysicalSize;
-        window.set_inner_size(PhysicalSize::new(700, 800));
+    window.set_inner_size(PhysicalSize::new(700, 800));
 
     // we need to add a canvas to the HTML document that we will host our application
     #[cfg(target_arch = "wasm32")]
@@ -457,6 +476,20 @@ pub async fn run()
 
     event_loop.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Poll;
+
+        // on the web, the resize event does not fire, so we check the value manually
+        #[cfg(target_arch = "wasm32")] 
+        {
+            if window.inner_size() != state.size
+            {
+                let scale = window.scale_factor() as f32;
+                let size = window.inner_size();
+    
+                state.update_scale_factor(scale);
+                state.resize(size);
+            }
+        }
+
         match event {
             Event::DeviceEvent {
                 event: DeviceEvent::MouseMotion{ delta, },
@@ -484,7 +517,8 @@ pub async fn run()
                     WindowEvent::Resized(physical_size) => {
                         state.resize(*physical_size);
                     }
-                    WindowEvent::ScaleFactorChanged { new_inner_size , ..} => {
+                    WindowEvent::ScaleFactorChanged { scale_factor, new_inner_size} => {
+                        state.update_scale_factor(*scale_factor as f32);
                         state.resize(**new_inner_size);
                     }
                     _ => {}
@@ -499,8 +533,7 @@ pub async fn run()
                 match state.render() {
                     Ok(_) => {}
                     // Reconfigure the surface if lost
-                    Err(wgpu::SurfaceError::Lost) => *control_flow = ControlFlow::Exit,
-                    // Err(wgpu::SurfaceError::Lost) => self.resize(state.size),
+                    Err(wgpu::SurfaceError::Lost) => state.resize(state.size),
                     Err(wgpu::SurfaceError::OutOfMemory) => *control_flow = ControlFlow::Exit,
                     Err(e) => eprintln!("{:?}", e),
                 }
