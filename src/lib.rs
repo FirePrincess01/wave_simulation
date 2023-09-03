@@ -252,6 +252,22 @@ impl WaveSimulation
         self.mouse_selector.resize(new_size.width, new_size.height);
     }
 
+    fn apply_scale_factor(&self, position: winit::dpi::PhysicalPosition<f64>) -> winit::dpi::PhysicalPosition<f64> {
+        
+        cfg_if::cfg_if! {
+            // apply scale factor for the web
+            if #[cfg(target_arch = "wasm32")] {
+                let mut res = position;
+                res.x = res.x / self.scale_factor as f64;
+                res.y = res.y / self.scale_factor as f64;
+                res
+            }
+            else {
+                position
+            }
+        }
+    }
+
     fn input(&mut self, event: &WindowEvent) -> bool {
         match event {
             WindowEvent::KeyboardInput {
@@ -321,13 +337,12 @@ impl WaveSimulation
                 true
             } 
             WindowEvent::Touch(touch) => {
-                let x_pos = touch.location.x as f32 / self.scale_factor ;
-                let y_pos = touch.location.y as f32 / self.scale_factor ;
+                let pos = self.apply_scale_factor(touch.location);
 
                 match touch.phase {
                     TouchPhase::Started => {
                         self.mouse_pressed_forces = true;
-                        self.mouse_selector.calc_mouse_position_on_screen(x_pos, y_pos);
+                        self.mouse_selector.calc_mouse_position_on_screen(pos.x as f32, pos.y as f32);
                     }
                     TouchPhase::Ended => {
                         self.mouse_pressed_forces = false;
@@ -338,16 +353,15 @@ impl WaveSimulation
                         self.wave_equation.interupt_mouse();
                     }
                     TouchPhase::Moved => {
-                        self.mouse_selector.calc_mouse_position_on_screen(x_pos, y_pos);
+                        self.mouse_selector.calc_mouse_position_on_screen(pos.x as f32, pos.y as f32);
                     }
                 }
                 true
             } 
             WindowEvent::CursorMoved { position, .. } => {
-                let x_pos = position.x as f32 / self.scale_factor;
-                let y_pos = position.y as f32 / self.scale_factor;
+                let pos = self.apply_scale_factor(*position);
 
-                self.mouse_selector.calc_mouse_position_on_screen(x_pos, y_pos);
+                self.mouse_selector.calc_mouse_position_on_screen(pos.x as f32, pos.y as f32);
                 true
             }
             _ => false,
