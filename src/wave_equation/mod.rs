@@ -130,14 +130,13 @@ impl<const M:usize, const N:usize>  WaveEquation<M, N>{
         }
 
         let total_lenght = ((x_1 - x_0) * (x_1 - x_0) + (y_1 - y_0) * (y_1 - y_0)).sqrt();
-        if x_1 == x_0 {return;} //currently not able to handle vertical lines
         let inclination = (y_1 - y_0) / (x_1 - x_0);
 
         // index of the current and final square
         let mut x_i = x_0.floor() as usize;
         let mut y_i = y_0.floor() as usize;
         let x_final = x_1.floor() as usize;
-        let y_final = y_1.floor() as usize;
+        let mut y_final = y_1.floor() as usize;
         let steps = x_final - x_i + y_final.abs_diff(y_i);
 
         // current and next line intersection in local coordinates
@@ -146,37 +145,57 @@ impl<const M:usize, const N:usize>  WaveEquation<M, N>{
         let mut x_cut;
         let mut y_cut;
 
-        for _j in 0..steps {
-            x_cut = 1.;
-            y_cut = y_curr + inclination * (x_cut - x_curr);
-            //successful cut on right border
-            if y_cut < 1. && y_cut > 0. {
-                self.add_line_force_to_square(x_i, y_i, total_lenght, force, x_curr, y_curr, x_cut, y_cut);
-                x_i += 1;
-                x_cut = 0.;
+        //Just go queer up
+        if x_1 == x_0 {
+            if y_0 > y_1 {
+                std::mem::swap(&mut y_0, &mut y_1);
+                std::mem::swap(&mut y_i, &mut y_final);
+                y_curr = y_0 - y_0.floor();
             }
-            else  {
-                y_cut = if inclination > 0. {1.} else {0.};
-                x_cut = x_curr + (y_cut - y_curr) / inclination;
-                self.add_line_force_to_square(x_i, y_i, total_lenght, force, x_curr, y_curr, x_cut, y_cut);
-                if inclination > 0. {
-                    y_i += 1;
-                    y_cut = 0.;
-                }
-                else {
-                    y_i -= 1;
-                    y_cut = 1.;
-                }
+            for _j in 0..steps {
+                y_cut = 1.;
+                self.add_line_force_to_square(x_i, y_i, total_lenght, force, x_curr, y_curr, x_curr, y_cut);
+                y_curr = 0.;
+                y_i += 1;
             }
-            x_curr = x_cut;
-            y_curr = y_cut;
+        }
+        //main case, goes left to right
+        else {
+            for _j in 0..steps {
+                x_cut = 1.;
+                y_cut = y_curr + inclination * (x_cut - x_curr);
+                //successful cut on right border
+                if y_cut < 1. && y_cut > 0. {
+                    self.add_line_force_to_square(x_i, y_i, total_lenght, force, x_curr, y_curr, x_cut, y_cut);
+                    x_i += 1;
+                    x_cut = 0.;
+                }
+                //need to intersect top or bottom border
+                else  {
+                    y_cut = if inclination > 0. {1.} else {0.};
+                    x_cut = x_curr + (y_cut - y_curr) / inclination;
+                    self.add_line_force_to_square(x_i, y_i, total_lenght, force, x_curr, y_curr, x_cut, y_cut);
+                    if inclination > 0. {
+                        y_i += 1;
+                        y_cut = 0.;
+                    }
+                    else {
+                        y_i -= 1;
+                        y_cut = 1.;
+                    }
+                }
+                x_curr = x_cut;
+                y_curr = y_cut;
+            }
         }
         //final square
         self.add_line_force_to_square(x_i, y_i, total_lenght, force, x_curr, y_curr, x_1 - x_1.floor(), y_1 - y_1.floor());
     }
 
+    //Tells the class, that mouse is no longer continuously clicked
     pub fn interupt_mouse(&mut self) {self.mouse_interupted = true}
 
+    //returns a reference to the current wave grid
     pub fn get_current(&self) -> &[[f32; N]; M] {
         &self.current
     }
