@@ -4,6 +4,7 @@
 //!
 
 mod vertex_color_shader;
+mod vertex_texture_shader;
 mod wgpu_renderer;
 mod geometry;
 mod wave_equation;
@@ -22,6 +23,7 @@ use winit::{
 #[cfg(target_arch="wasm32")]
 use wasm_bindgen::prelude::*;
 
+
 const M: usize = 80*4;
 const N: usize = 70*4;
 const MN: usize = M * N;
@@ -34,8 +36,11 @@ struct WaveSimulation
 
     // wgpu_renderer
     wgpu_renderer : wgpu_renderer::WgpuRenderer,
+    _camera_bind_group_layout: vertex_color_shader::CameraBindGroupLayout,
     pipeline: vertex_color_shader::Pipeline,
     pipeline_lines: vertex_color_shader::Pipeline,
+    _texture_bind_group_layout: vertex_texture_shader::TextureBindGroupLayout,
+    pipeline_texture: vertex_texture_shader::Pipeline,
 
     // camera
     camera: wgpu_renderer::camera::Camera,
@@ -48,10 +53,14 @@ struct WaveSimulation
     camera_uniform_orthographic: vertex_color_shader::CameraUniform,
     camera_uniform_orthographic_buffer: vertex_color_shader::CameraUniformBuffer,
 
-    // render data
+    // grid
     grid_host: geometry::Grid<M, N, MN>,
     grid_device: vertex_color_shader::Mesh,
     grid_instances: Vec<vertex_color_shader::Instance>,
+
+    // textured mesh
+    textures: Vec<vertex_texture_shader::Texture>,
+    textured_mesh : vertex_texture_shader::Mesh,
 
     // input
     mouse_pressed_camera: bool,
@@ -76,8 +85,24 @@ impl WaveSimulation
         let scale_factor = window.scale_factor() as f32;
         let mut wgpu_renderer = wgpu_renderer::WgpuRenderer::new(&window).await;
         let surface_format = wgpu_renderer.config().format;
-        let pipeline = vertex_color_shader::Pipeline::new(&mut wgpu_renderer.device(), surface_format);
-        let pipeline_lines = vertex_color_shader::Pipeline::new_lines(&mut wgpu_renderer.device(), surface_format);
+        let camera_bind_group_layout = vertex_color_shader::CameraBindGroupLayout::new(&mut wgpu_renderer.device());
+        let pipeline = vertex_color_shader::Pipeline::new(
+            &mut wgpu_renderer.device(), 
+            &camera_bind_group_layout, 
+            surface_format,
+        );
+        let pipeline_lines = vertex_color_shader::Pipeline::new_lines(
+            &mut wgpu_renderer.device(), 
+            &camera_bind_group_layout, 
+            surface_format,
+        );
+        let texture_bind_group_layout = vertex_texture_shader::TextureBindGroupLayout::new(&mut wgpu_renderer.device());
+        let pipeline_texture = vertex_texture_shader::Pipeline::new(
+            &mut wgpu_renderer.device(), 
+            &camera_bind_group_layout, 
+            &texture_bind_group_layout, 
+            surface_format
+        );
 
         let position = Point3::new(0.0, 0.0, 0.0);
         let yaw = cgmath::Deg(0.0);
@@ -100,37 +125,16 @@ impl WaveSimulation
 
         let camera_uniform_buffer = vertex_color_shader::CameraUniformBuffer::new(
             &mut wgpu_renderer.device(), 
-            pipeline.camera_bind_group_layout());
+            &camera_bind_group_layout);
 
         let camera_uniform_orthographic: vertex_color_shader::CameraUniform = vertex_color_shader::CameraUniform::new_orthographic(width, height);
         let mut camera_uniform_orthographic_buffer = vertex_color_shader::CameraUniformBuffer::new(
                 &mut wgpu_renderer.device(), 
-                pipeline_lines.camera_bind_group_layout());
+                &camera_bind_group_layout);
 
         camera_uniform_orthographic_buffer.update(wgpu_renderer.queue(), camera_uniform_orthographic);   // add uniform identity matrix
 
 
-        // const VERTICES: &[vertex_color_shader::Vertex] = &[
-        //     vertex_color_shader::vertex::Vertex { position: [-0.0868241, 0.49240386, 0.0] }, // A
-        //     vertex_color_shader::vertex::Vertex { position: [-0.49513406, 0.06958647, 0.0] }, // B
-        //     vertex_color_shader::vertex::Vertex { position: [-0.21918549, -0.44939706, 0.0] }, // C
-        //     vertex_color_shader::vertex::Vertex { position: [0.35966998, -0.3473291, 0.0] }, // D
-        //     vertex_color_shader::vertex::Vertex { position: [0.44147372, 0.2347359, 0.0] }, // E
-        // ];
-
-        // const COLORS: &[vertex_color_shader::Color] = &[
-        //     vertex_color_shader::color::Color { color: [0.5, 0.0, 0.5] }, // A
-        //     vertex_color_shader::color::Color { color: [0.5, 0.0, 0.5] }, // B
-        //     vertex_color_shader::color::Color { color: [0.5, 0.0, 0.5] }, // C
-        //     vertex_color_shader::color::Color { color: [0.5, 0.0, 0.5] }, // D
-        //     vertex_color_shader::color::Color { color: [0.5, 0.0, 0.5] }, // E
-        // ];
-
-        // const INDICES: &[u32] = &[
-        //     0, 1, 4,
-        //     1, 2, 4,
-        //     2, 3, 4,
-        // ];
 
         let grid_host: geometry::Grid<M, N, MN> = geometry::Grid::new();
 
@@ -176,13 +180,82 @@ impl WaveSimulation
             &graph_instances,
         );
 
+        // image
+        let diffuse_bytes = include_bytes!("happy-tree.png");
+        let diffuse_image = image::load_from_memory(diffuse_bytes).unwrap();
+        let diffuse_rgba = diffuse_image.to_rgba8();
+
+        let diffuse_texture = vertex_texture_shader::Texture::new(
+            &mut wgpu_renderer.device(), 
+            &texture_bind_group_layout, 
+            &diffuse_rgba, 
+            Some("happy-tree.png")).unwrap(); 
+        diffuse_texture.write(&mut wgpu_renderer.queue(), &diffuse_rgba);
+
+        let textures = vec![diffuse_texture];
+
+        // Test data
+
+        // const VERTICES: &[vertex_color_shader::Vertex] = &[
+        //     vertex_color_shader::vertex::Vertex { position: [-0.0868241, 0.49240386, 0.0] }, // A
+        //     vertex_color_shader::vertex::Vertex { position: [-0.49513406, 0.06958647, 0.0] }, // B
+        //     vertex_color_shader::vertex::Vertex { position: [-0.21918549, -0.44939706, 0.0] }, // C
+        //     vertex_color_shader::vertex::Vertex { position: [0.35966998, -0.3473291, 0.0] }, // D
+        //     vertex_color_shader::vertex::Vertex { position: [0.44147372, 0.2347359, 0.0] }, // E
+        // ];
+
+        // const COLORS: &[vertex_color_shader::Color] = &[
+        //     vertex_color_shader::color::Color { color: [0.5, 0.0, 0.5] }, // A
+        //     vertex_color_shader::color::Color { color: [0.5, 0.0, 0.5] }, // B
+        //     vertex_color_shader::color::Color { color: [0.5, 0.0, 0.5] }, // C
+        //     vertex_color_shader::color::Color { color: [0.5, 0.0, 0.5] }, // D
+        //     vertex_color_shader::color::Color { color: [0.5, 0.0, 0.5] }, // E
+        // ];
+
+        const VERTICES: &[vertex_texture_shader::Vertex]  = &[
+            vertex_texture_shader::Vertex { position: [-0.0868241, 0.49240386, 0.0], tex_coords: [0.4131759, 0.99240386], }, // A
+            vertex_texture_shader::Vertex { position: [-0.49513406, 0.06958647, 0.0], tex_coords: [0.0048659444, 0.56958647], }, // B
+            vertex_texture_shader::Vertex { position: [-0.21918549, -0.44939706, 0.0], tex_coords: [0.28081453, 0.05060294], }, // C
+            vertex_texture_shader::Vertex { position: [0.35966998, -0.3473291, 0.0], tex_coords: [0.85967, 0.1526709], }, // D
+            vertex_texture_shader::Vertex { position: [0.44147372, 0.2347359, 0.0], tex_coords: [0.9414737, 0.7347359], }, // E
+        ];
+        
+        const INDICES: &[u32] = &[
+            0, 1, 4,
+            1, 2, 4,
+            2, 3, 4,
+        ];
+
+        const INSTANCES2: &[vertex_color_shader::Instance] = &[ 
+            vertex_color_shader::Instance{
+                position: glam::Vec3::new(0.0, 0.0, 0.0),
+                rotation: glam::Quat::IDENTITY,
+            },
+        ];
+
+        let textured_mesh_instances = Vec::from(INSTANCES2);
+
+        let mut textured_mesh = vertex_texture_shader::Mesh::new(
+            &mut wgpu_renderer.device(),
+            &VERTICES,
+            0,
+            &INDICES,
+            &textured_mesh_instances,
+        );
+
+        textured_mesh.update_vetex_buffer(&mut wgpu_renderer.queue(), &VERTICES);
+        textured_mesh.update_instance_buffer(&mut wgpu_renderer.queue(), &textured_mesh_instances);
+
         Self {
             size,
             scale_factor,
 
             wgpu_renderer,
+            _camera_bind_group_layout: camera_bind_group_layout,
             pipeline,
             pipeline_lines,
+            _texture_bind_group_layout: texture_bind_group_layout,
+            pipeline_texture,
 
             camera,
             camera_controller,
@@ -198,6 +271,9 @@ impl WaveSimulation
             grid_device,
     
             grid_instances,
+
+            textures,
+            textured_mesh,
 
             mouse_pressed_camera: false,
             mouse_pressed_forces: false,
@@ -462,10 +538,14 @@ impl WaveSimulation
 
             // grid
             self.pipeline.bind(&mut render_pass);
-
             self.camera_uniform_buffer.bind(&mut render_pass);
-
             self.grid_device.draw(&mut render_pass);
+
+            // textured_mesh
+            self.pipeline_texture.bind(&mut render_pass);
+            self.camera_uniform_buffer.bind(&mut render_pass);
+            self.textured_mesh.draw(&mut render_pass, &self.textures);
+
 
             // performance monitor
             if self.show_performance_graph {

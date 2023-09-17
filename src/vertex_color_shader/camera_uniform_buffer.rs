@@ -2,6 +2,7 @@
 //!
 
 use super::camera_uniform;
+use super::camera_bind_group_layout;
 use wgpu::util::DeviceExt;
 
 pub struct CameraUniformBuffer{
@@ -10,7 +11,7 @@ pub struct CameraUniformBuffer{
 }
 
 impl CameraUniformBuffer {
-    pub fn new(device: &mut wgpu::Device, camera_bind_group_layout: &wgpu::BindGroupLayout) -> Self {
+    pub fn new(device: &mut wgpu::Device, camera_bind_group_layout: &camera_bind_group_layout::CameraBindGroupLayout) -> Self {
 
         let camera_uniform = camera_uniform::CameraUniform::new();
 
@@ -23,7 +24,7 @@ impl CameraUniformBuffer {
         );
 
         let camera_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            layout: &camera_bind_group_layout,
+            layout: &camera_bind_group_layout.get(),
             entries: &[
                 wgpu::BindGroupEntry {
                     binding: 0,
