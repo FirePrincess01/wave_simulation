@@ -15,6 +15,7 @@ pub struct WaveEquation<const M:usize, const N:usize> {
     x_old: f32,
     y_old: f32,
     mouse_interupted: bool,
+    touch_force: f32,
 }
 
 impl<const M:usize, const N:usize>  WaveEquation<M, N>{
@@ -37,6 +38,7 @@ impl<const M:usize, const N:usize>  WaveEquation<M, N>{
             x_old: 0.,
             y_old: 0.,
             mouse_interupted: true,
+            touch_force: 1.,
         }
     }
 
@@ -79,7 +81,7 @@ impl<const M:usize, const N:usize>  WaveEquation<M, N>{
             self.mouse_interupted = true;
             return;
         }
-        let force_strength = 4.0;
+        let force_strength = 4.0 * self.touch_force;
         let same_quad = x.floor() == self.x_old.floor() && y.floor() == self.y_old.floor();
 
         if self.mouse_interupted || same_quad {
@@ -193,7 +195,11 @@ impl<const M:usize, const N:usize>  WaveEquation<M, N>{
     }
 
     //Tells the class, that mouse is no longer continuously clicked
+    //If this is forgotten, at worst there will be a long streak
     pub fn interupt_mouse(&mut self) {self.mouse_interupted = true}
+
+    //Sets a multiplyer for the applied force with a default of 1.
+    pub fn set_touch_force(&mut self, touch_force: f32) {self.touch_force = touch_force; }
 
     //returns a reference to the current wave grid
     pub fn get_current(&self) -> &[[f32; N]; M] {

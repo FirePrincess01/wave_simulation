@@ -338,11 +338,22 @@ impl WaveSimulation
             } 
             WindowEvent::Touch(touch) => {
                 let pos = self.apply_scale_factor(touch.location);
+                //test results for IPhone suggest the value is close to 0, we cant debug that :(
+                let mut force_mult = match touch.force{
+                    Some(x) => 
+                    match x {
+                        Force::Calibrated { force, max_possible_force, .. } => 3. * force / max_possible_force,
+                        Force::Normalized(force) => 3. * force,
+                    },
+                    None => 1.,
+                };
+                force_mult = force_mult.max(1.);
 
                 match touch.phase {
                     TouchPhase::Started => {
                         self.mouse_pressed_forces = true;
                         self.mouse_selector.calc_mouse_position_on_screen(pos.x as f32, pos.y as f32);
+                        self.wave_equation.set_touch_force(force_mult as f32);
                     }
                     TouchPhase::Ended => {
                         self.mouse_pressed_forces = false;
@@ -354,6 +365,7 @@ impl WaveSimulation
                     }
                     TouchPhase::Moved => {
                         self.mouse_selector.calc_mouse_position_on_screen(pos.x as f32, pos.y as f32);
+                        self.wave_equation.set_touch_force(force_mult as f32);
                     }
                 }
                 true
