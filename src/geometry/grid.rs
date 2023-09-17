@@ -3,11 +3,14 @@
 
 use super::super::vertex_color_shader::Vertex as Vertex;
 use super::super::vertex_color_shader::Color as Color;
+use super::super::vertex_texture_shader::Vertex as VertexTextured;
 
 pub struct Grid<const M:usize, const N:usize, const MN: usize> {
     pub vertices: Box<[[Vertex; N]; M]>,
     pub colors: Box<[[Color; N]; M]>,
     pub indices: Vec<u32>,
+
+    pub vertices_textured: Box<[[VertexTextured; N]; M]>
 }
 
 impl<const M:usize, const N:usize, const MN: usize> Grid<M, N, MN> {
@@ -20,6 +23,14 @@ impl<const M:usize, const N:usize, const MN: usize> Grid<M, N, MN> {
         for y in 0..M {
             for x in 0..N {
                 vertices[y][x] = Vertex{position: [x as f32, y as f32, 0.0]};
+            }
+        }
+
+        // create vertices textured
+        let mut vertices_textured = unsafe {Box::<[[VertexTextured; N]; M]>::new_zeroed().assume_init()};
+        for y in 0..M {
+            for x in 0..N {
+                vertices_textured[y][x] = VertexTextured{position: [x as f32, y as f32, 0.0], tex_coords: [x as f32 / N as f32, (M as f32 - y as f32) / M as f32]};
             }
         }
 
@@ -56,11 +67,19 @@ impl<const M:usize, const N:usize, const MN: usize> Grid<M, N, MN> {
             vertices, 
             colors,
             indices,
+
+            vertices_textured,
         }
     }
 
     pub fn vertices_slice(&self) -> &[Vertex] {
         let data = unsafe { std::mem::transmute::<&[[Vertex; N]; M],  &[Vertex; MN]>  (&*self.vertices) };
+        
+        data
+    }
+
+    pub fn vertices_textured_slice(&self) -> &[VertexTextured] {
+        let data = unsafe { std::mem::transmute::<&[[VertexTextured; N]; M],  &[VertexTextured; MN]>  (&*self.vertices_textured) };
         
         data
     }

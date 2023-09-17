@@ -53,19 +53,22 @@ struct WaveSimulation
     camera_uniform_orthographic: vertex_color_shader::CameraUniform,
     camera_uniform_orthographic_buffer: vertex_color_shader::CameraUniformBuffer,
 
+    // textures
+    textures: Vec<vertex_texture_shader::Texture>,
+
     // grid
     grid_host: geometry::Grid<M, N, MN>,
     grid_device: vertex_color_shader::Mesh,
     grid_instances: Vec<vertex_color_shader::Instance>,
 
-    // textured mesh
-    textures: Vec<vertex_texture_shader::Texture>,
-    textured_mesh : vertex_texture_shader::Mesh,
+    // grid textured
+    grid_textured_device: vertex_texture_shader::Mesh,
 
     // input
     mouse_pressed_camera: bool,
     mouse_pressed_forces: bool,
     show_performance_graph: bool,
+    show_textured_grid: bool,
     mouse_selector: mouse_selector::MouseSelector,
 
     // simulation
@@ -145,9 +148,6 @@ impl WaveSimulation
             },
         ];
 
-        // let grid_vertices = Vec::from(VERTICES);
-        // let grid_colors = Vec::from(COLORS);
-        // let grid_indices = Vec::from(INDICES);
         let grid_instances = Vec::from(INSTANCES);
 
         //hacked FoV, application appears to use a multiplicator of exactly 1.5
@@ -157,6 +157,14 @@ impl WaveSimulation
             &mut wgpu_renderer.device(),
             &grid_host.vertices_slice(),
             &grid_host.colors_slice(),
+            &grid_host.indices_slice(),
+            &grid_instances,
+        );
+
+        let grid_textured_device = vertex_texture_shader::Mesh::new(
+            &mut wgpu_renderer.device(),
+            &grid_host.vertices_textured_slice(),
+            0, 
             &grid_host.indices_slice(),
             &grid_instances,
         );
@@ -181,7 +189,7 @@ impl WaveSimulation
         );
 
         // image
-        let diffuse_bytes = include_bytes!("happy-tree.png");
+        let diffuse_bytes = include_bytes!("pony2.png");
         let diffuse_image = image::load_from_memory(diffuse_bytes).unwrap();
         let diffuse_rgba = diffuse_image.to_rgba8();
 
@@ -189,7 +197,7 @@ impl WaveSimulation
             &mut wgpu_renderer.device(), 
             &texture_bind_group_layout, 
             &diffuse_rgba, 
-            Some("happy-tree.png")).unwrap(); 
+            Some("pony2.png")).unwrap(); 
         diffuse_texture.write(&mut wgpu_renderer.queue(), &diffuse_rgba);
 
         let textures = vec![diffuse_texture];
@@ -212,39 +220,29 @@ impl WaveSimulation
         //     vertex_color_shader::color::Color { color: [0.5, 0.0, 0.5] }, // E
         // ];
 
-        const VERTICES: &[vertex_texture_shader::Vertex]  = &[
-            vertex_texture_shader::Vertex { position: [-0.0868241, 0.49240386, 0.0], tex_coords: [0.4131759, 0.99240386], }, // A
-            vertex_texture_shader::Vertex { position: [-0.49513406, 0.06958647, 0.0], tex_coords: [0.0048659444, 0.56958647], }, // B
-            vertex_texture_shader::Vertex { position: [-0.21918549, -0.44939706, 0.0], tex_coords: [0.28081453, 0.05060294], }, // C
-            vertex_texture_shader::Vertex { position: [0.35966998, -0.3473291, 0.0], tex_coords: [0.85967, 0.1526709], }, // D
-            vertex_texture_shader::Vertex { position: [0.44147372, 0.2347359, 0.0], tex_coords: [0.9414737, 0.7347359], }, // E
-        ];
+        // const VERTICES: &[vertex_texture_shader::Vertex]  = &[
+        //     vertex_texture_shader::Vertex { position: [-0.0868241, 0.49240386, 0.0], tex_coords: [0.4131759, 0.99240386], }, // A
+        //     vertex_texture_shader::Vertex { position: [-0.49513406, 0.06958647, 0.0], tex_coords: [0.0048659444, 0.56958647], }, // B
+        //     vertex_texture_shader::Vertex { position: [-0.21918549, -0.44939706, 0.0], tex_coords: [0.28081453, 0.05060294], }, // C
+        //     vertex_texture_shader::Vertex { position: [0.35966998, -0.3473291, 0.0], tex_coords: [0.85967, 0.1526709], }, // D
+        //     vertex_texture_shader::Vertex { position: [0.44147372, 0.2347359, 0.0], tex_coords: [0.9414737, 0.7347359], }, // E
+        // ];
         
-        const INDICES: &[u32] = &[
-            0, 1, 4,
-            1, 2, 4,
-            2, 3, 4,
-        ];
+        // const INDICES: &[u32] = &[
+        //     0, 1, 4,
+        //     1, 2, 4,
+        //     2, 3, 4,
+        // ];
 
-        const INSTANCES2: &[vertex_color_shader::Instance] = &[ 
-            vertex_color_shader::Instance{
-                position: glam::Vec3::new(0.0, 0.0, 0.0),
-                rotation: glam::Quat::IDENTITY,
-            },
-        ];
+        // const INSTANCES2: &[vertex_color_shader::Instance] = &[ 
+        //     vertex_color_shader::Instance{
+        //         position: glam::Vec3::new(0.0, 0.0, 0.0),
+        //         rotation: glam::Quat::IDENTITY,
+        //     },
+        // ];
 
-        let textured_mesh_instances = Vec::from(INSTANCES2);
+        // let textured_mesh_instances = Vec::from(INSTANCES2);
 
-        let mut textured_mesh = vertex_texture_shader::Mesh::new(
-            &mut wgpu_renderer.device(),
-            &VERTICES,
-            0,
-            &INDICES,
-            &textured_mesh_instances,
-        );
-
-        textured_mesh.update_vetex_buffer(&mut wgpu_renderer.queue(), &VERTICES);
-        textured_mesh.update_instance_buffer(&mut wgpu_renderer.queue(), &textured_mesh_instances);
 
         Self {
             size,
@@ -272,12 +270,14 @@ impl WaveSimulation
     
             grid_instances,
 
+            grid_textured_device,
+
             textures,
-            textured_mesh,
 
             mouse_pressed_camera: false,
             mouse_pressed_forces: false,
             show_performance_graph: false,
+            show_textured_grid: false,
             mouse_selector,
 
             wave_equation,
@@ -385,6 +385,18 @@ impl WaveSimulation
             WindowEvent::KeyboardInput {
                 input:
                     KeyboardInput {
+                        virtual_keycode: Some(VirtualKeyCode::Key3),
+                        state: ElementState::Pressed,
+                        ..
+                    },
+                ..
+            } => { 
+                self.show_textured_grid = !self.show_textured_grid;
+                true
+            },
+            WindowEvent::KeyboardInput {
+                input:
+                    KeyboardInput {
                         virtual_keycode: Some(key),
                         state,
                         ..
@@ -460,6 +472,8 @@ impl WaveSimulation
 
                 self.grid_host.colors[y][x].color = [r, g, b];
                 self.grid_host.vertices[y][x].position[2] = val * 1.0;
+
+                self.grid_host.vertices_textured[y][x].position[2] = val * 1.0;
             }
         }
     }
@@ -490,9 +504,12 @@ impl WaveSimulation
 
         // mesh
         self.watch.start(3);
-        self.grid_device.update_vetex_buffer(&mut self.wgpu_renderer.queue(), &self.grid_host.vertices_slice());
-        self.grid_device.update_color_buffer(&mut self.wgpu_renderer.queue(), &self.grid_host.colors_slice());
-        self.grid_device.update_instance_buffer(&mut self.wgpu_renderer.queue(), &self.grid_instances);
+            self.grid_device.update_vetex_buffer(&mut self.wgpu_renderer.queue(), &self.grid_host.vertices_slice());
+            self.grid_device.update_color_buffer(&mut self.wgpu_renderer.queue(), &self.grid_host.colors_slice());
+            self.grid_device.update_instance_buffer(&mut self.wgpu_renderer.queue(), &self.grid_instances);
+
+            self.grid_textured_device.update_vetex_buffer(&mut self.wgpu_renderer.queue(), &self.grid_host.vertices_textured_slice());
+            self.grid_textured_device.update_instance_buffer(&mut self.wgpu_renderer.queue(), &self.grid_instances);
         self.watch.stop(3);
 
         // performance monitor
@@ -537,15 +554,16 @@ impl WaveSimulation
             });
 
             // grid
-            self.pipeline.bind(&mut render_pass);
-            self.camera_uniform_buffer.bind(&mut render_pass);
-            self.grid_device.draw(&mut render_pass);
-
-            // textured_mesh
-            self.pipeline_texture.bind(&mut render_pass);
-            self.camera_uniform_buffer.bind(&mut render_pass);
-            self.textured_mesh.draw(&mut render_pass, &self.textures);
-
+            if self.show_textured_grid {
+                self.pipeline_texture.bind(&mut render_pass);
+                self.camera_uniform_buffer.bind(&mut render_pass);
+                self.grid_textured_device.draw(&mut render_pass, &self.textures);
+            }
+            else {
+                self.pipeline.bind(&mut render_pass);
+                self.camera_uniform_buffer.bind(&mut render_pass);
+                self.grid_device.draw(&mut render_pass);
+            }
 
             // performance monitor
             if self.show_performance_graph {
