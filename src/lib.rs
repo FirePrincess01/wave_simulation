@@ -456,17 +456,19 @@ impl WaveSimulation
         }
     }
 
-    fn wave_equation_to_grid_host(&mut self) {
+    fn wave_equation_to_grid_host(&mut self) 
+    {
+        let gradient = colorous::COOL;
+
         for y in 0..M {
             for x in 0..N {
 
                 let val = self.wave_equation.get_current()[y][x];
                 let val_colour = ((val + 1.0) * 0.5) as f64;
 
-                let gradient = colorous::COOL;
                 let color = gradient.eval_continuous(val_colour);
 
-                let r =   color.r as f32 / 255.0;
+                let r = color.r as f32 / 255.0;
                 let g = color.g as f32 / 255.0;
                 let b = color.b as f32 / 255.0;
 
@@ -504,18 +506,18 @@ impl WaveSimulation
 
         // mesh
         self.watch.start(3);
-            self.grid_device.update_vetex_buffer(&mut self.wgpu_renderer.queue(), &self.grid_host.vertices_slice());
+            self.grid_device.update_vertex_buffer(&mut self.wgpu_renderer.queue(), &self.grid_host.vertices_slice());
             self.grid_device.update_color_buffer(&mut self.wgpu_renderer.queue(), &self.grid_host.colors_slice());
             self.grid_device.update_instance_buffer(&mut self.wgpu_renderer.queue(), &self.grid_instances);
 
-            self.grid_textured_device.update_vetex_buffer(&mut self.wgpu_renderer.queue(), &self.grid_host.vertices_textured_slice());
+            self.grid_textured_device.update_vertex_buffer(&mut self.wgpu_renderer.queue(), &self.grid_host.vertices_textured_slice());
             self.grid_textured_device.update_instance_buffer(&mut self.wgpu_renderer.queue(), &self.grid_instances);
         self.watch.stop(3);
 
         // performance monitor
         self.watch.update();
         self.watch.update_viewer(&mut self.graph_host);
-        self.graph_device.update_vetex_buffer(&mut self.wgpu_renderer.queue(), self.graph_host.vertices.as_slice());
+        self.graph_device.update_vertex_buffer(&mut self.wgpu_renderer.queue(), self.graph_host.vertices.as_slice());
     }
 
     fn render(&mut self) -> Result<(), wgpu::SurfaceError> {

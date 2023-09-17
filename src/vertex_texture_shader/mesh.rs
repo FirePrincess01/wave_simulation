@@ -65,7 +65,7 @@ impl Mesh
         }
     }
 
-    pub fn update_vetex_buffer(&mut self, queue: &mut wgpu::Queue, vertices: &[Vertex])
+    pub fn update_vertex_buffer(&mut self, queue: &mut wgpu::Queue, vertices: &[Vertex])
     {   
         let data = bytemuck::cast_slice(&vertices);
 
