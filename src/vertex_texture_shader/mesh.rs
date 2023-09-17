@@ -1,9 +1,9 @@
 //! Contains the device buffers to render an object with this shader
 //!
 
-use super::vertex;
-use super::color;
-use super::instance;
+use super::Vertex;
+use super::Texture;
+use super::Instance;
 use wgpu::util::{DeviceExt, self};
 
 
@@ -11,7 +11,7 @@ use wgpu::util::{DeviceExt, self};
 pub struct Mesh
 {
     vertex_buffer: wgpu::Buffer,
-    color_buffer: wgpu::Buffer,
+    texture_index: usize,
     index_buffer: wgpu::Buffer,
     num_indices: u32,
     instance_buffer: wgpu::Buffer,
@@ -21,23 +21,15 @@ pub struct Mesh
 impl Mesh
 {
     pub fn new(device: &mut wgpu::Device, 
-        vertices: &[vertex::Vertex],
-        colors: &[color::Color],
+        vertices: &[Vertex],
+        texture_index: usize,
         indices: &[u32],
-        instances: &[instance::Instance]) -> Self
+        instances: &[Instance]) -> Self
     {
         let vertex_buffer = device.create_buffer_init(
             &util::BufferInitDescriptor {
                 label: Some("Vertex Buffer"),
                 contents: bytemuck::cast_slice(&vertices),
-                usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
-            }
-        );
-
-        let color_buffer = device.create_buffer_init(
-            &util::BufferInitDescriptor {
-                label: Some("Color Buffer"),
-                contents: bytemuck::cast_slice(&colors),
                 usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
             }
         );
@@ -52,7 +44,7 @@ impl Mesh
 
         let num_indices = indices.len() as u32;
 
-        let instance_data = instances.iter().map(instance::Instance::to_raw).collect::<Vec<_>>();
+        let instance_data = instances.iter().map(Instance::to_raw).collect::<Vec<_>>();
         let instance_buffer = device.create_buffer_init(
             &wgpu::util::BufferInitDescriptor {
                 label: Some("Instance Buffer"),
@@ -65,7 +57,7 @@ impl Mesh
 
         Self {
             vertex_buffer,
-            color_buffer,
+            texture_index,
             index_buffer,
             num_indices,
             instance_buffer,
@@ -73,7 +65,7 @@ impl Mesh
         }
     }
 
-    pub fn update_vertex_buffer(&mut self, queue: &mut wgpu::Queue, vertices: &[vertex::Vertex])
+    pub fn update_vertex_buffer(&mut self, queue: &mut wgpu::Queue, vertices: &[Vertex])
     {   
         let data = bytemuck::cast_slice(&vertices);
 
@@ -82,37 +74,33 @@ impl Mesh
         }
     }
 
-    pub fn update_color_buffer(&mut self, queue: &mut wgpu::Queue, colors: &[color::Color])
+    pub fn _set_texture_index(&mut self, texture_index: usize)
     {
-        let data = bytemuck::cast_slice(&colors);
-
-        if self.color_buffer.size() == data.len() as u64 {
-            queue.write_buffer(&self.color_buffer, 0, data);
-        }
+        self.texture_index = texture_index;
     }
 
-    pub fn update_instance_buffer(&mut self, queue: &mut wgpu::Queue, instances: &[instance::Instance])
+    pub fn update_instance_buffer(&mut self, queue: &mut wgpu::Queue, instances: &[Instance])
     {
-        let instance_data = &instances.iter().map(instance::Instance::to_raw).collect::<Vec<_>>();
+        let instance_data = &instances.iter().map(Instance::to_raw).collect::<Vec<_>>();
         let data = bytemuck::cast_slice(&instance_data);
 
-        if self.color_buffer.size() == data.len() as u64 {
+        if self.instance_buffer.size() == data.len() as u64 {
             
             queue.write_buffer(&self.instance_buffer, 0, data);
         }
     }
 
-    pub fn draw<'a>(&'a self, render_pass: &mut wgpu::RenderPass<'a>)
+    pub fn draw<'a>(&'a self, render_pass: &mut wgpu::RenderPass<'a>, textures: &'a [Texture])
     {
         {
             render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
-            render_pass.set_vertex_buffer(1, self.color_buffer.slice(..));
+            textures[self.texture_index].bind(render_pass);
             
             render_pass.set_index_buffer(
                 self.index_buffer.slice(..), 
                 wgpu::IndexFormat::Uint32);
 
-            render_pass.set_vertex_buffer(2, self.instance_buffer.slice(..));
+            render_pass.set_vertex_buffer(1, self.instance_buffer.slice(..));
 
             render_pass.draw_indexed(0..self.num_indices, 0, 0..self.num_instances);
             

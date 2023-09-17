@@ -2,7 +2,7 @@
 //!
 
 pub mod camera;
-pub mod texture;
+pub mod depth_texture;
 
 use winit::window::Window;
 
@@ -13,7 +13,7 @@ pub struct WgpuRenderer
     queue: wgpu::Queue,
     config: wgpu::SurfaceConfiguration,
     size: winit::dpi::PhysicalSize<u32>,
-    depth_texture: texture::Texture,
+    depth_texture: depth_texture::DepthTexture,
 }
 
 impl WgpuRenderer
@@ -82,7 +82,7 @@ impl WgpuRenderer
 
         surface.configure(&device, &config);
 
-        let depth_texture = texture::Texture::create_depth_texture(&device, &config, "depth_texture");
+        let depth_texture = depth_texture::DepthTexture::create_depth_texture(&device, &config, "depth_texture");
 
         Self {
             surface,
@@ -99,7 +99,7 @@ impl WgpuRenderer
             self.size = new_size;
             self.config.width = new_size.width;
             self.config.height = new_size.height;
-            self.depth_texture = texture::Texture::create_depth_texture(&self.device, &self.config, "depth_texture");
+            self.depth_texture = depth_texture::DepthTexture::create_depth_texture(&self.device, &self.config, "depth_texture");
             self.surface.configure(&self.device, &self.config)
         }
     }

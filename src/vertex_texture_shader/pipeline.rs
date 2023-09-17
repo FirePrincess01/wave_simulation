@@ -1,14 +1,11 @@
-//! A general purpose pipeline using vertices, colors and instances
-//!
-//! Vertices and Colors are independently updateable
-//! The implementation uses wgpu for rendering
+//! A general purpose pipeline using vertices, textures and instances
 //!
 
-use super::vertex;
-use super::color;
-use super::instance;
-use super::camera_bind_group_layout;
-use super::super::wgpu_renderer::depth_texture;
+use super::Vertex;
+use super::InstanceRaw;
+use super::TextureBindGroupLayout;
+use super::CameraBindGroupLayout;
+use super::super::wgpu_renderer::depth_texture::DepthTexture;
 
 
 /// A general purpose shader using vertices, colors and an instance matrix
@@ -19,21 +16,19 @@ pub struct Pipeline
 
 impl Pipeline
 {
-    pub fn new_lines(device: &mut wgpu::Device, camera_bind_group_layout: &camera_bind_group_layout::CameraBindGroupLayout, surface_format: wgpu::TextureFormat) -> Self {
-        Self::new_parameterized(device, camera_bind_group_layout, surface_format, wgpu::PrimitiveTopology::LineList)
-    }
-
-    pub fn new(device: &mut wgpu::Device, camera_bind_group_layout: &camera_bind_group_layout::CameraBindGroupLayout, surface_format: wgpu::TextureFormat) -> Self {
-        Self::new_parameterized(device, camera_bind_group_layout, surface_format, wgpu::PrimitiveTopology::TriangleList)
-    }
-
-    fn new_parameterized(device: &mut wgpu::Device, camera_bind_group_layout: &camera_bind_group_layout::CameraBindGroupLayout, surface_format: wgpu::TextureFormat, topology: wgpu::PrimitiveTopology) -> Self
+    pub fn new(device: 
+        &mut wgpu::Device, 
+        camera_bind_group_layout: &CameraBindGroupLayout, 
+        texture_bind_group_layout: &TextureBindGroupLayout, 
+        surface_format: wgpu::TextureFormat) -> Self
     {
         // Shader
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-            label: Some("Shader"),
+            label: Some("Texture Shader"),
             source: wgpu::ShaderSource::Wgsl(include_str!("shader.wgsl").into()),
         });
+
+
 
         // Pipeline
         let render_pipeline_layout = 
@@ -41,21 +36,22 @@ impl Pipeline
                 label: Some("Render Pipeline Layout"),
                 bind_group_layouts: &[
                     &camera_bind_group_layout.get(),
+                    &texture_bind_group_layout.get(),
                 ],
                 push_constant_ranges: &[],
             });
 
 
         let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-            label: Some("Render Pipeline"),
+            label: Some("Textured Render Pipeline"),
             layout: Some(&render_pipeline_layout),
             vertex: wgpu::VertexState {
                 module: &shader,
                 entry_point: "vs_main", 
                 buffers: &[
-                    vertex::Vertex::desc(),
-                    color::Color::desc(),
-                    instance::InstanceRaw::desc(),
+                    Vertex::desc(),
+                    // Color::desc(),
+                    InstanceRaw::desc(),
                 ],
             },
             fragment: Some(wgpu::FragmentState { 
@@ -68,7 +64,7 @@ impl Pipeline
                 })],
             }),
             primitive: wgpu::PrimitiveState {
-                topology: topology, // wgpu::PrimitiveTopology::TriangleList,
+                topology: wgpu::PrimitiveTopology::TriangleList,
                 strip_index_format: None,
                 front_face: wgpu::FrontFace::Ccw,  // counter-clockwise direction
                 cull_mode: Some(wgpu::Face::Back),
@@ -80,7 +76,7 @@ impl Pipeline
                 conservative: false,
             },
             depth_stencil: Some(wgpu::DepthStencilState {
-                format: depth_texture::DepthTexture::DEPTH_FORMAT,
+                format: DepthTexture::DEPTH_FORMAT,
                 depth_write_enabled: true,
                 depth_compare: wgpu::CompareFunction::Less,
                 stencil: wgpu::StencilState::default(),

@@ -110,7 +110,8 @@ impl<const M:usize, const N:usize>  WaveEquation<M, N>{
         let length = f32::sqrt((x_out-x_in) * (x_out-x_in) + (y_out-y_in) * (y_out-y_in));
         
         // let factor = length * force / total_lenght;           // scale force with length
-        let factor = length * force / total_lenght.min(1.); // apply full force along the line
+        // let factor = length * force / total_lenght.min(1.); // apply full force along the line
+        let factor = length * force / total_lenght.sqrt().min(total_lenght); // apply full force along the line
 
         self.forces[y_i][x_i]       += factor * self.unit_square_integral(1.-x_in, 1.-y_in, 1.-x_out, 1.-y_out);
         self.forces[y_i+1][x_i]     += factor * self.unit_square_integral(1.-x_in, y_in, 1.-x_out, y_out);
