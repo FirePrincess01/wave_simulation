@@ -1,3 +1,5 @@
+//! GPU memory buffer containing the indices for this shader
+//!
 
 use wgpu::util::DeviceExt;
 

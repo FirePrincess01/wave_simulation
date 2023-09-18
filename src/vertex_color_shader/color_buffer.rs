@@ -1,3 +1,5 @@
+//! GPU memory buffer containing the Color for this shader
+//!
 
 use super::Color;
 use wgpu::util::DeviceExt;

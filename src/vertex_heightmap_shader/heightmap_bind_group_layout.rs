@@ -1,4 +1,4 @@
-//! A bind group to create a camera uniform buffer for this shader
+//! A bind group to create a heightmap for this shader
 //!
 
 pub struct HeightmapBindGroupLayout {

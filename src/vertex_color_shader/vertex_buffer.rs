@@ -1,3 +1,5 @@
+//! GPU memory buffer containing the vertices for this shader
+//!
 
 use super::Vertex;
 use wgpu::util::DeviceExt;

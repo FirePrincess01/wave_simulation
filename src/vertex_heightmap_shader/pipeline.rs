@@ -1,4 +1,4 @@
-//! A general purpose pipeline using vertices, textures and instances
+//! A general purpose pipeline using vertices, textures, a heightmap and instances
 //!
 
 use super::Vertex;

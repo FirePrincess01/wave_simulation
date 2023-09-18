@@ -1,3 +1,5 @@
+//! GPU memory buffer containing the instances for this shader
+//!
 
 use super::InstanceRaw;
 use wgpu::util::DeviceExt;

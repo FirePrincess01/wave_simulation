@@ -1,4 +1,4 @@
-//! Contains a buffer for the CameraUniform struct
+//! Contains a buffer for the Heightmap array
 //!
 
 use super::heightmap::Heightmap;
