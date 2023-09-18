@@ -10,6 +10,7 @@ use super::IndexBuffer;
 use super::InstanceBuffer;
 
 /// A general purpose shader using vertices, colors and an instance matrix
+#[allow(dead_code)]
 pub struct Mesh
 {
     vertex_buffer: VertexBuffer,
@@ -18,6 +19,7 @@ pub struct Mesh
     instance_buffer: InstanceBuffer,
 }
 
+#[allow(dead_code)]
 impl Mesh
 {
     pub fn new(device: &mut wgpu::Device, 
@@ -61,7 +63,7 @@ impl Mesh
         self.vertex_buffer.bind(render_pass);
         textures[self.texture_index].bind(render_pass);
         self.index_buffer.bind(render_pass);
-        self.instance_buffer.bind(render_pass);
+        self.instance_buffer.bind_slot(render_pass, 1);
 
         render_pass.draw_indexed(0..self.index_buffer.size(), 0, 0..self.instance_buffer.size());
     }

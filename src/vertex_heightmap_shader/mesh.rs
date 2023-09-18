@@ -48,7 +48,7 @@ impl Mesh
         }
     }
 
-    pub fn update_vertex_buffer(&mut self, queue: &mut wgpu::Queue, vertices: &[Vertex])
+    pub fn _update_vertex_buffer(&mut self, queue: &mut wgpu::Queue, vertices: &[Vertex])
     {   
         self.vertex_buffer.update(queue, &vertices);
     }
@@ -75,7 +75,7 @@ impl Mesh
         textures[self.texture_index].bind(render_pass);
         self.heightmap_buffer.bind(render_pass);
         self.index_buffer.bind(render_pass);
-        self.instance_buffer.bind(render_pass);
+        self.instance_buffer.bind_slot(render_pass, 1);
 
         render_pass.draw_indexed(0..self.index_buffer.size(), 0, 0..self.instance_buffer.size());
     }

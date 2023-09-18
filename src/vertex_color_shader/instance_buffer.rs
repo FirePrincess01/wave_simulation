@@ -35,9 +35,14 @@ impl InstanceBuffer {
         }
     }
 
-    pub fn bind<'a>(&'a self, render_pass: &mut wgpu::RenderPass<'a>,) 
+    pub fn bind<'a>(&'a self, render_pass: &mut wgpu::RenderPass<'a>) 
     {
         render_pass.set_vertex_buffer(2, self.buffer.slice(..));
+    }
+
+    pub fn bind_slot<'a>(&'a self, render_pass: &mut wgpu::RenderPass<'a>, slot: u32) 
+    {
+        render_pass.set_vertex_buffer(slot, self.buffer.slice(..));
     }
 
     pub fn size(&self) -> u32 {

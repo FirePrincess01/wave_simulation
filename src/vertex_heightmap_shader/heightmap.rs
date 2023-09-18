@@ -9,7 +9,7 @@ pub struct Heightmap {
 }
 
 impl Heightmap {
-    pub fn zero() -> Self {
+    pub fn _zero() -> Self {
         Self { height: 0.0 }
     }
 }
