@@ -1,12 +1,14 @@
 //! Contains the device buffers to render an object with this shader
 //!
 
+use super::HeightmapBindGroupLayout;
 use super::Vertex;
-use super::Color;
+use super::Heightmap;
 use super::Instance;
 
 use super::VertexBuffer;
-use super::ColorBuffer;
+use super::Texture;
+use super::HeightmapBuffer;
 use super::IndexBuffer;
 use super::InstanceBuffer;
 
@@ -14,7 +16,8 @@ use super::InstanceBuffer;
 pub struct Mesh
 {
     vertex_buffer: VertexBuffer,
-    color_buffer: ColorBuffer,
+    texture_index: usize,
+    heightmap_buffer: HeightmapBuffer,
     index_buffer: IndexBuffer,
     instance_buffer: InstanceBuffer,
 }
@@ -23,12 +26,14 @@ impl Mesh
 {
     pub fn new(device: &mut wgpu::Device, 
         vertices: &[Vertex],
-        colors: &[Color],
+        texture_index: usize,
+        heightmap: &[Heightmap],
+        heightmap_bind_group_layout: &HeightmapBindGroupLayout,
         indices: &[u32],
         instances: &[Instance]) -> Self
     {
         let vertex_buffer = VertexBuffer::new(device, &vertices);
-        let color_buffer = ColorBuffer::new(device, &colors);
+        let heightmap_buffer = HeightmapBuffer::new(device, &heightmap_bind_group_layout, &heightmap);
         let index_buffer = IndexBuffer::new(device, &indices);
 
         let instance_data = instances.iter().map(Instance::to_raw).collect::<Vec<_>>();
@@ -36,7 +41,8 @@ impl Mesh
 
         Self {
             vertex_buffer,
-            color_buffer,
+            texture_index,
+            heightmap_buffer,
             index_buffer,
             instance_buffer,
         }
@@ -47,9 +53,14 @@ impl Mesh
         self.vertex_buffer.update(queue, &vertices);
     }
 
-    pub fn update_color_buffer(&mut self, queue: &mut wgpu::Queue, colors: &[Color])
+    pub fn _set_texture_index(&mut self, texture_index: usize)
     {
-        self.color_buffer.update(queue, &colors);
+        self.texture_index = texture_index;
+    }
+
+    pub fn update_heightmap_buffer(&mut self, queue: &mut wgpu::Queue, heightmap: &[Heightmap])
+    {   
+        self.heightmap_buffer.update(queue, &heightmap);
     }
 
     pub fn update_instance_buffer(&mut self, queue: &mut wgpu::Queue, instances: &[Instance])
@@ -58,10 +69,11 @@ impl Mesh
         self.instance_buffer.update(queue, &instance_data);
     }
 
-    pub fn draw<'a>(&'a self, render_pass: &mut wgpu::RenderPass<'a>)
+    pub fn draw<'a>(&'a self, render_pass: &mut wgpu::RenderPass<'a>, textures: &'a [Texture])
     {
         self.vertex_buffer.bind(render_pass);
-        self.color_buffer.bind(render_pass);
+        textures[self.texture_index].bind(render_pass);
+        self.heightmap_buffer.bind(render_pass);
         self.index_buffer.bind(render_pass);
         self.instance_buffer.bind(render_pass);
 

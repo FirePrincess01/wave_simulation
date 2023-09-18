@@ -5,6 +5,7 @@
 
 mod vertex_color_shader;
 mod vertex_texture_shader;
+mod vertex_heightmap_shader;
 mod wgpu_renderer;
 mod geometry;
 mod wave_equation;

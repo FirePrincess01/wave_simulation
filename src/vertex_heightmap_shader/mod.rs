@@ -3,19 +3,21 @@
 
 mod pipeline;
 mod mesh;
-
-mod vertex;
-mod vertex_buffer;
-mod texture_bind_group_layout;
-mod texture;
+mod heightmap;
+mod heightmap_buffer;
+mod heightmap_bind_group_layout;
 
 pub use pipeline::Pipeline;
 pub use mesh::Mesh;
 
-pub use vertex::Vertex;
-pub use vertex_buffer::VertexBuffer;
-pub use texture_bind_group_layout::TextureBindGroupLayout;
-pub use texture::Texture;
+pub use heightmap::Heightmap;
+pub use heightmap_buffer::HeightmapBuffer;
+pub use heightmap_bind_group_layout::HeightmapBindGroupLayout;
+
+pub use super::vertex_texture_shader::Vertex;
+pub use super::vertex_texture_shader::VertexBuffer;
+pub use super::vertex_texture_shader::TextureBindGroupLayout;
+pub use super::vertex_texture_shader::Texture;
 
 pub use super::vertex_color_shader::IndexBuffer;
 pub use super::vertex_color_shader::Instance;
