@@ -1,32 +1,32 @@
-//! A general purpose pipeline using vertices, textures and instances
+//! A general purpose pipeline using vertices, textures, a heightmap and instances
 //!
 
 use super::Vertex;
 use super::InstanceRaw;
 use super::TextureBindGroupLayout;
 use super::CameraBindGroupLayout;
+use super::HeightmapBindGroupLayout;
 use super::super::wgpu_renderer::depth_texture::DepthTexture;
 
 
 /// A general purpose shader using vertices, colors and an instance matrix
-#[allow(dead_code)]
 pub struct Pipeline
 {
     render_pipeline: wgpu::RenderPipeline,
 }
 
-#[allow(dead_code)]
 impl Pipeline
 {
     pub fn new(device: 
         &mut wgpu::Device, 
         camera_bind_group_layout: &CameraBindGroupLayout, 
         texture_bind_group_layout: &TextureBindGroupLayout, 
+        heightmap_bind_group_layout: &HeightmapBindGroupLayout, 
         surface_format: wgpu::TextureFormat) -> Self
     {
         // Shader
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-            label: Some("Texture Shader"),
+            label: Some("Heightmap Shader"),
             source: wgpu::ShaderSource::Wgsl(include_str!("shader.wgsl").into()),
         });
 
@@ -39,13 +39,14 @@ impl Pipeline
                 bind_group_layouts: &[
                     &camera_bind_group_layout.get(),
                     &texture_bind_group_layout.get(),
+                    &heightmap_bind_group_layout.get(),
                 ],
                 push_constant_ranges: &[],
             });
 
 
         let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-            label: Some("Textured Render Pipeline"),
+            label: Some("Heightmap Render Pipeline"),
             layout: Some(&render_pipeline_layout),
             vertex: wgpu::VertexState {
                 module: &shader,

@@ -4,13 +4,16 @@
 use super::super::vertex_color_shader::Vertex as Vertex;
 use super::super::vertex_color_shader::Color as Color;
 use super::super::vertex_texture_shader::Vertex as VertexTextured;
+use super::super::vertex_heightmap_shader::Heightmap as Heightmap;
 
 pub struct Grid<const M:usize, const N:usize, const MN: usize> {
     pub vertices: Box<[[Vertex; N]; M]>,
     pub colors: Box<[[Color; N]; M]>,
     pub indices: Vec<u32>,
 
-    pub vertices_textured: Box<[[VertexTextured; N]; M]>
+    pub vertices_textured: Box<[[VertexTextured; N]; M]>,
+
+    pub heightmap: Box<[[Heightmap; N]; M]>,
 }
 
 impl<const M:usize, const N:usize, const MN: usize> Grid<M, N, MN> {
@@ -23,6 +26,13 @@ impl<const M:usize, const N:usize, const MN: usize> Grid<M, N, MN> {
         for y in 0..M {
             for x in 0..N {
                 vertices[y][x] = Vertex{position: [x as f32, y as f32, 0.0]};
+            }
+        }
+
+        let mut heightmap = unsafe {Box::<[[Heightmap; N]; M]>::new_zeroed().assume_init()};
+        for y in 0..M {
+            for x in 0..N {
+                heightmap[y][x] = Heightmap{height: 0.0};
             }
         }
 
@@ -69,6 +79,8 @@ impl<const M:usize, const N:usize, const MN: usize> Grid<M, N, MN> {
             indices,
 
             vertices_textured,
+
+            heightmap,
         }
     }
 
@@ -80,6 +92,12 @@ impl<const M:usize, const N:usize, const MN: usize> Grid<M, N, MN> {
 
     pub fn vertices_textured_slice(&self) -> &[VertexTextured] {
         let data = unsafe { std::mem::transmute::<&[[VertexTextured; N]; M],  &[VertexTextured; MN]>  (&*self.vertices_textured) };
+        
+        data
+    }
+
+    pub fn heightmap_slice(&self) -> &[Heightmap] {
+        let data = unsafe { std::mem::transmute::<&[[Heightmap; N]; M],  &[Heightmap; MN]>  (&*self.heightmap) };
         
         data
     }

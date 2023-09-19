@@ -5,6 +5,7 @@
 
 mod vertex_color_shader;
 mod vertex_texture_shader;
+mod vertex_heightmap_shader;
 mod wgpu_renderer;
 mod geometry;
 mod wave_equation;
@@ -24,6 +25,8 @@ use winit::{
 use wasm_bindgen::prelude::*;
 
 
+
+
 const M: usize = 80*4;
 const N: usize = 70*4;
 const MN: usize = M * N;
@@ -40,7 +43,9 @@ struct WaveSimulation
     pipeline: vertex_color_shader::Pipeline,
     pipeline_lines: vertex_color_shader::Pipeline,
     _texture_bind_group_layout: vertex_texture_shader::TextureBindGroupLayout,
-    pipeline_texture: vertex_texture_shader::Pipeline,
+    _pipeline_texture: vertex_texture_shader::Pipeline,
+    _heightmap_bind_group_layout: vertex_heightmap_shader::HeightmapBindGroupLayout,
+    pipeline_heightmap: vertex_heightmap_shader::Pipeline,
 
     // camera
     camera: wgpu_renderer::camera::Camera,
@@ -61,8 +66,8 @@ struct WaveSimulation
     grid_device: vertex_color_shader::Mesh,
     grid_instances: Vec<vertex_color_shader::Instance>,
 
-    // grid textured
-    grid_textured_device: vertex_texture_shader::Mesh,
+    // grid heightmap
+    grid_heightmap_device: vertex_heightmap_shader::Mesh,
 
     // input
     mouse_pressed_camera: bool,
@@ -104,6 +109,14 @@ impl WaveSimulation
             &mut wgpu_renderer.device(), 
             &camera_bind_group_layout, 
             &texture_bind_group_layout, 
+            surface_format
+        );
+        let heightmap_bind_group_layout = vertex_heightmap_shader::HeightmapBindGroupLayout::new(&mut wgpu_renderer.device());
+        let pipeline_heightmap = vertex_heightmap_shader::Pipeline::new(
+            &mut wgpu_renderer.device(), 
+            &camera_bind_group_layout, 
+            &texture_bind_group_layout, 
+            &heightmap_bind_group_layout,
             surface_format
         );
 
@@ -161,10 +174,18 @@ impl WaveSimulation
             &grid_instances,
         );
 
-        let grid_textured_device = vertex_texture_shader::Mesh::new(
+        let heightmap = vertex_heightmap_shader::Heightmap2D{
+            data: &grid_host.heightmap_slice(),
+            width: M as u32,
+            height: N as u32, 
+        };
+
+        let grid_heightmap_device = vertex_heightmap_shader::Mesh::new(
             &mut wgpu_renderer.device(),
             &grid_host.vertices_textured_slice(),
             0, 
+            &heightmap,
+            &heightmap_bind_group_layout,
             &grid_host.indices_slice(),
             &grid_instances,
         );
@@ -253,7 +274,9 @@ impl WaveSimulation
             pipeline,
             pipeline_lines,
             _texture_bind_group_layout: texture_bind_group_layout,
-            pipeline_texture,
+            _pipeline_texture: pipeline_texture,
+            _heightmap_bind_group_layout: heightmap_bind_group_layout,
+            pipeline_heightmap,
 
             camera,
             camera_controller,
@@ -270,7 +293,7 @@ impl WaveSimulation
     
             grid_instances,
 
-            grid_textured_device,
+            grid_heightmap_device,
 
             textures,
 
@@ -475,7 +498,7 @@ impl WaveSimulation
                 self.grid_host.colors[y][x].color = [r, g, b];
                 self.grid_host.vertices[y][x].position[2] = val * 1.0;
 
-                self.grid_host.vertices_textured[y][x].position[2] = val * 1.0;
+                self.grid_host.heightmap[y][x].height = val * 1.0;
             }
         }
     }
@@ -510,8 +533,8 @@ impl WaveSimulation
             self.grid_device.update_color_buffer(&mut self.wgpu_renderer.queue(), &self.grid_host.colors_slice());
             self.grid_device.update_instance_buffer(&mut self.wgpu_renderer.queue(), &self.grid_instances);
 
-            self.grid_textured_device.update_vertex_buffer(&mut self.wgpu_renderer.queue(), &self.grid_host.vertices_textured_slice());
-            self.grid_textured_device.update_instance_buffer(&mut self.wgpu_renderer.queue(), &self.grid_instances);
+            self.grid_heightmap_device.update_heightmap_texture(&mut self.wgpu_renderer.queue(), &self.grid_host.heightmap_slice());
+            self.grid_heightmap_device.update_instance_buffer(&mut self.wgpu_renderer.queue(), &self.grid_instances);
         self.watch.stop(3);
 
         // performance monitor
@@ -557,9 +580,10 @@ impl WaveSimulation
 
             // grid
             if self.show_textured_grid {
-                self.pipeline_texture.bind(&mut render_pass);
+                self.pipeline_heightmap.bind(&mut render_pass);
                 self.camera_uniform_buffer.bind(&mut render_pass);
-                self.grid_textured_device.draw(&mut render_pass, &self.textures);
+                self.grid_heightmap_device.draw(&mut render_pass, &self.textures);
+    
             }
             else {
                 self.pipeline.bind(&mut render_pass);

@@ -7,12 +7,12 @@ struct CameraUniform {
 @group(0) @binding(0)
 var<uniform> camera: CameraUniform;
 
+@group(2) @binding(0)
+var t_heightmap: texture_2d<f32>;
+
 struct VertexInput {
     @location(0) position: vec3<f32>,
-}
-
-struct ColorInput {
-    @location(1) color: vec3<f32>,
+    @location(1) tex_coords: vec2<f32>,
 }
 
 struct InstanceInput {
@@ -24,13 +24,13 @@ struct InstanceInput {
 
 struct VertexOutput {
     @builtin(position) clip_position: vec4<f32>,
-    @location(0) color: vec3<f32>,
+    @location(0) tex_coords: vec2<f32>,
 };
 
 @vertex 
 fn vs_main(
+    @builtin(vertex_index) vertex_index: u32,
     model: VertexInput,
-    model_color: ColorInput,
     instance: InstanceInput,
 ) -> VertexOutput {
     let model_matrix = mat4x4<f32>(
@@ -40,15 +40,28 @@ fn vs_main(
         instance.model_matrix_3,
     );
 
+    let dim: vec2<u32> = textureDimensions(t_heightmap);
+    let width = dim.x;
+    let height = dim.y;
+    let index = vec2<u32>(vertex_index % width, vertex_index / width);
+
+    let pos_rgb: vec4<f32> = textureLoad(t_heightmap, index, 0);
+    let posz = pos_rgb.r;
+
     var out: VertexOutput;
-    out.color = model_color.color;
-    out.clip_position = camera.view_proj * model_matrix * vec4<f32>(model.position, 1.0);
+    out.tex_coords = model.tex_coords;
+    out.clip_position = camera.view_proj * model_matrix * vec4<f32>(model.position.x, model.position.y, posz, 1.0);
     return out;
 }
 
 // Fragment shader
 
+@group(1) @binding(0)
+var t_diffuse: texture_2d<f32>;
+@group(1) @binding(1)
+var s_diffuse: sampler;
+
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-    return vec4<f32>(in.color, 1.0);
+    return textureSample(t_diffuse, s_diffuse, in.tex_coords);
 }

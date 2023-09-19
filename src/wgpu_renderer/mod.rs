@@ -6,6 +6,8 @@ pub mod depth_texture;
 
 use winit::window::Window;
 
+// use log::{info, trace, warn, error};
+
 pub struct WgpuRenderer
 {
     surface: wgpu::Surface,
@@ -43,6 +45,14 @@ impl WgpuRenderer
             }
         ).await.unwrap();
 
+        // let downlevel_capabilities = adapter.get_downlevel_capabilities();
+        // let downlevel_flags = downlevel_capabilities.flags;
+        // let vertex_storage = downlevel_flags.contains(wgpu::DownlevelFlags::VERTEX_STORAGE);
+        // let compute_shader = downlevel_flags.contains(wgpu::DownlevelFlags::COMPUTE_SHADERS);
+
+        // log::error!("vertex storage: {}", vertex_storage);
+        // log::error!("compute shader: {}", compute_shader);
+
         let (device, queue) = adapter.request_device(
             &wgpu::DeviceDescriptor {
                 features: wgpu::Features::empty(),
@@ -66,7 +76,7 @@ impl WgpuRenderer
         // sRGB surfaces, you'll need to account fo that when drawing to the frame.
         let surface_format = surface_caps.formats.iter()
             .copied()
-            .filter(|f| f.describe().srgb)
+            .filter(|f| f.is_srgb())
             .next()
             .unwrap_or(surface_caps.formats[0]);
 

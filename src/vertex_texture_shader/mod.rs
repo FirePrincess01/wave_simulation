@@ -1,23 +1,27 @@
 //! A general purpose pipeline using vertices, textures and instances
 //!
 
-mod mesh;
 mod pipeline;
+mod mesh;
+
+mod vertex;
+mod vertex_buffer;
 mod texture_bind_group_layout;
 mod texture;
-mod vertex;
 
 pub use pipeline::Pipeline;
-
-pub use vertex::Vertex;
-pub use texture::Texture;
-pub use texture_bind_group_layout::TextureBindGroupLayout;
-
 pub use mesh::Mesh;
 
-pub use super::vertex_color_shader::instance::Instance;
-pub use super::vertex_color_shader::instance::InstanceRaw;
+pub use vertex::Vertex;
+pub use vertex_buffer::VertexBuffer;
+pub use texture_bind_group_layout::TextureBindGroupLayout;
+pub use texture::Texture;
 
-pub use super::vertex_color_shader::camera_bind_group_layout::CameraBindGroupLayout;
-pub use super::vertex_color_shader::camera_uniform::CameraUniform;
-pub use super::vertex_color_shader::camera_uniform_buffer::CameraUniformBuffer;
+pub use super::vertex_color_shader::IndexBuffer;
+pub use super::vertex_color_shader::Instance;
+pub use super::vertex_color_shader::InstanceRaw;
+pub use super::vertex_color_shader::InstanceBuffer;
+
+pub use super::vertex_color_shader::CameraBindGroupLayout;
+pub use super::vertex_color_shader::CameraUniform;
+pub use super::vertex_color_shader::CameraUniformBuffer;
