@@ -21,15 +21,15 @@ pub struct Mesh
 
 impl Mesh
 {
-    pub fn new(device: &mut wgpu::Device, 
+    pub fn new(device: &wgpu::Device, 
         vertices: &[Vertex],
         colors: &[Color],
         indices: &[u32],
         instances: &[Instance]) -> Self
     {
-        let vertex_buffer = VertexBuffer::new(device, &vertices);
-        let color_buffer = ColorBuffer::new(device, &colors);
-        let index_buffer = IndexBuffer::new(device, &indices);
+        let vertex_buffer = VertexBuffer::new(device, vertices);
+        let color_buffer = ColorBuffer::new(device, colors);
+        let index_buffer = IndexBuffer::new(device, indices);
 
         let instance_data = instances.iter().map(Instance::to_raw).collect::<Vec<_>>();
         let instance_buffer = InstanceBuffer::new(device, &instance_data);
@@ -42,20 +42,20 @@ impl Mesh
         }
     }
 
-    pub fn update_vertex_buffer(&mut self, queue: &mut wgpu::Queue, vertices: &[Vertex])
+    pub fn update_vertex_buffer(&mut self, queue: &wgpu::Queue, vertices: &[Vertex])
     {   
-        self.vertex_buffer.update(queue, &vertices);
+        self.vertex_buffer.update(queue, vertices);
     }
 
-    pub fn update_color_buffer(&mut self, queue: &mut wgpu::Queue, colors: &[Color])
+    pub fn update_color_buffer(&mut self, queue: &wgpu::Queue, colors: &[Color])
     {
-        self.color_buffer.update(queue, &colors);
+        self.color_buffer.update(queue, colors);
     }
 
-    pub fn update_instance_buffer(&mut self, queue: &mut wgpu::Queue, instances: &[Instance])
+    pub fn update_instance_buffer(&mut self, queue: &wgpu::Queue, instances: &[Instance])
     {
         let instance_data = &instances.iter().map(Instance::to_raw).collect::<Vec<_>>();
-        self.instance_buffer.update(queue, &instance_data);
+        self.instance_buffer.update(queue, instance_data);
     }
 
     pub fn draw<'a>(&'a self, render_pass: &mut wgpu::RenderPass<'a>)

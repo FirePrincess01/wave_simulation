@@ -19,7 +19,7 @@ pub struct Pipeline
 impl Pipeline
 {
     pub fn new(device: 
-        &mut wgpu::Device, 
+        &wgpu::Device, 
         camera_bind_group_layout: &CameraBindGroupLayout, 
         texture_bind_group_layout: &TextureBindGroupLayout, 
         surface_format: wgpu::TextureFormat) -> Self

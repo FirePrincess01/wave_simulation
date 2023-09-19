@@ -53,6 +53,7 @@ impl InstanceRaw {
 }
 
 impl Instance {
+    #[allow(clippy::wrong_self_convention)]
     pub fn to_raw(&self) -> InstanceRaw {
         // InstanceRaw { 
         //     model: (cgmath::Matrix4::from_translation(self.position) * cgmath::Matrix4::from(self.rotation)).into(),

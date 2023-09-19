@@ -21,8 +21,8 @@ impl HeightmapTexture {
         label: Option<&str>
     ) -> Self {
         let size = wgpu::Extent3d {
-            width: width,
-            height: height,
+            width,
+            height,
             depth_or_array_layers: 1,
         };
 
@@ -43,7 +43,7 @@ impl HeightmapTexture {
 
         let bind_group = device.create_bind_group(
             &wgpu::BindGroupDescriptor {
-                layout: &heightmap_bind_group_layout.get(),
+                layout: heightmap_bind_group_layout.get(),
                 entries: &[
                     wgpu::BindGroupEntry {
                         binding: 0,
@@ -70,7 +70,7 @@ impl HeightmapTexture {
             depth_or_array_layers: 1,
         };
 
-        let data = bytemuck::cast_slice(&heightmap);
+        let data = bytemuck::cast_slice(heightmap);
 
         queue.write_texture(
             wgpu::ImageCopyTexture {
@@ -79,7 +79,7 @@ impl HeightmapTexture {
                 mip_level: 0,
                 origin: wgpu::Origin3d::ZERO,
             },
-            &data,
+            data,
             wgpu::ImageDataLayout {
                 offset: 0,
                 bytes_per_row:  Some(4 * self.width),

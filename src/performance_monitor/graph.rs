@@ -42,7 +42,7 @@ impl Graph {
 
         let mut vertices = vec![Vertex::zero(); line_nr_vertices * Self::NR_LINES + Self::FPS_LINES.len()];
         let mut colors = vec![Color::white(); line_nr_vertices * Self::NR_LINES + Self::FPS_LINES.len()];
-        let mut indices = vec![0 as u32; line_nr_vertices * Self::NR_LINES + Self::FPS_LINES.len()];
+        let mut indices = vec![0_u32; line_nr_vertices * Self::NR_LINES + Self::FPS_LINES.len()];
 
         // vertices
         for i in 0..Self::FPS_LINES.len() {
@@ -75,8 +75,8 @@ impl Graph {
         }
 
         // indices
-        for i in 0..indices.len() {
-            indices[i] = i as u32;
+        for (i, item) in indices.iter_mut().enumerate() {
+            *item = i as u32;
         }
 
         Self {
@@ -93,11 +93,12 @@ impl Graph {
         let len = watchpoints.len()*2 + 2;
         let mut line: Vec<f32> = vec![0.0; len];
 
-        for i in 0..watchpoints.len() {
+        // for i in 0..watchpoints.len() {
+        for (i, watchpoint) in watchpoints.iter().enumerate() {
             let j = i * 2;
 
-            line[j] =   (watchpoints[i].start - last_update_time).as_micros() as f32 *  Self::LEN_PER_MICRO;
-            line[j+1] = (watchpoints[i].stop - last_update_time).as_micros() as f32 *  Self::LEN_PER_MICRO;
+            line[j] =   (watchpoint.start - last_update_time).as_micros() as f32 *  Self::LEN_PER_MICRO;
+            line[j+1] = (watchpoint.stop - last_update_time).as_micros() as f32 *  Self::LEN_PER_MICRO;
         }
 
         line[len-2] = 0.0;
@@ -111,7 +112,7 @@ impl Graph {
         let len = vertices.len();
         let vertices = &mut vertices[0..len - Self::FPS_LINES.len()];
 
-        assert!(vertices.len() > 0);
+        assert!(!vertices.is_empty());
         assert!(vertices.len() % line.len() == 0);
 
         vertices.rotate_right(line.len());

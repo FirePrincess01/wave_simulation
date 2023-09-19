@@ -42,6 +42,7 @@ impl<const M:usize, const N:usize>  WaveEquation<M, N>{
 
     pub fn step(&mut self) {
 
+        #[allow(clippy::explicit_auto_deref)]
         let previous: &[[f32; N]; M] = &*self.previous;
         let current =  &*self.current;
         let next = &mut *self.next;
@@ -106,6 +107,7 @@ impl<const M:usize, const N:usize>  WaveEquation<M, N>{
         (2. * x_in * y_in + x_in * y_out + y_in * x_out + 2. * x_out * y_out) / 6.
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn add_line_force_to_square(&mut self, x_i: usize, y_i: usize, total_lenght: f32, force: f32, x_in: f32, y_in: f32, x_out: f32, y_out: f32) {
         let length = f32::sqrt((x_out-x_in) * (x_out-x_in) + (y_out-y_in) * (y_out-y_in));
         
