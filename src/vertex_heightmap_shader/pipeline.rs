@@ -26,7 +26,7 @@ impl Pipeline
     {
         // Shader
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-            label: Some("Texture Shader"),
+            label: Some("Heightmap Shader"),
             source: wgpu::ShaderSource::Wgsl(include_str!("shader.wgsl").into()),
         });
 
@@ -46,7 +46,7 @@ impl Pipeline
 
 
         let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-            label: Some("Textured Render Pipeline"),
+            label: Some("Heightmap Render Pipeline"),
             layout: Some(&render_pipeline_layout),
             vertex: wgpu::VertexState {
                 module: &shader,

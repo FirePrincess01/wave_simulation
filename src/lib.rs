@@ -25,6 +25,8 @@ use winit::{
 use wasm_bindgen::prelude::*;
 
 
+
+
 const M: usize = 80*4;
 const N: usize = 70*4;
 const MN: usize = M * N;
@@ -172,11 +174,17 @@ impl WaveSimulation
             &grid_instances,
         );
 
+        let heightmap = vertex_heightmap_shader::Heightmap2D{
+            data: &grid_host.heightmap_slice(),
+            width: M as u32,
+            height: N as u32, 
+        };
+
         let grid_heightmap_device = vertex_heightmap_shader::Mesh::new(
             &mut wgpu_renderer.device(),
             &grid_host.vertices_textured_slice(),
             0, 
-            &grid_host.heightmap_slice(),
+            &heightmap,
             &heightmap_bind_group_layout,
             &grid_host.indices_slice(),
             &grid_instances,
@@ -525,7 +533,7 @@ impl WaveSimulation
             self.grid_device.update_color_buffer(&mut self.wgpu_renderer.queue(), &self.grid_host.colors_slice());
             self.grid_device.update_instance_buffer(&mut self.wgpu_renderer.queue(), &self.grid_instances);
 
-            self.grid_heightmap_device.update_heightmap_buffer(&mut self.wgpu_renderer.queue(), &self.grid_host.heightmap_slice());
+            self.grid_heightmap_device.update_heightmap_texture(&mut self.wgpu_renderer.queue(), &self.grid_host.heightmap_slice());
             self.grid_heightmap_device.update_instance_buffer(&mut self.wgpu_renderer.queue(), &self.grid_instances);
         self.watch.stop(3);
 

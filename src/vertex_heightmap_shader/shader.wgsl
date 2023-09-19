@@ -8,8 +8,7 @@ struct CameraUniform {
 var<uniform> camera: CameraUniform;
 
 @group(2) @binding(0)
-var<storage, read> heightmap: array<f32>;
-
+var t_heightmap: texture_2d<f32>;
 
 struct VertexInput {
     @location(0) position: vec3<f32>,
@@ -41,9 +40,16 @@ fn vs_main(
         instance.model_matrix_3,
     );
 
+    let dim: vec2<u32> = textureDimensions(t_heightmap);
+    let width = dim.x;
+    let height = dim.y;
+    let index = vec2<u32>(vertex_index % width, vertex_index / width);
+
+    let pos_rgb: vec4<f32> = textureLoad(t_heightmap, index, 0);
+    let posz = pos_rgb.r;
+
     var out: VertexOutput;
     out.tex_coords = model.tex_coords;
-    let posz = heightmap[vertex_index];
     out.clip_position = camera.view_proj * model_matrix * vec4<f32>(model.position.x, model.position.y, posz, 1.0);
     return out;
 }

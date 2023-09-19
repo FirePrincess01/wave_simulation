@@ -4,11 +4,12 @@
 use super::HeightmapBindGroupLayout;
 use super::Vertex;
 use super::Heightmap;
+use super::Heightmap2D;
 use super::Instance;
 
 use super::VertexBuffer;
 use super::Texture;
-use super::HeightmapBuffer;
+use super::HeightmapTexture;
 use super::IndexBuffer;
 use super::InstanceBuffer;
 
@@ -17,7 +18,7 @@ pub struct Mesh
 {
     vertex_buffer: VertexBuffer,
     texture_index: usize,
-    heightmap_buffer: HeightmapBuffer,
+    heightmap_texture: HeightmapTexture,
     index_buffer: IndexBuffer,
     instance_buffer: InstanceBuffer,
 }
@@ -27,13 +28,20 @@ impl Mesh
     pub fn new(device: &mut wgpu::Device, 
         vertices: &[Vertex],
         texture_index: usize,
-        heightmap: &[Heightmap],
+        heightmap2d: &Heightmap2D,
         heightmap_bind_group_layout: &HeightmapBindGroupLayout,
         indices: &[u32],
         instances: &[Instance]) -> Self
     {
         let vertex_buffer = VertexBuffer::new(device, &vertices);
-        let heightmap_buffer = HeightmapBuffer::new(device, &heightmap_bind_group_layout, &heightmap);
+        let heightmap_texture = HeightmapTexture::new(
+            device, 
+            &heightmap_bind_group_layout, 
+            &heightmap2d.data, 
+            heightmap2d.width,
+            heightmap2d.height,
+            Some("Heightmap Texture"),
+        );
         let index_buffer = IndexBuffer::new(device, &indices);
 
         let instance_data = instances.iter().map(Instance::to_raw).collect::<Vec<_>>();
@@ -42,7 +50,7 @@ impl Mesh
         Self {
             vertex_buffer,
             texture_index,
-            heightmap_buffer,
+            heightmap_texture,
             index_buffer,
             instance_buffer,
         }
@@ -58,9 +66,9 @@ impl Mesh
         self.texture_index = texture_index;
     }
 
-    pub fn update_heightmap_buffer(&mut self, queue: &mut wgpu::Queue, heightmap: &[Heightmap])
+    pub fn update_heightmap_texture(&mut self, queue: &mut wgpu::Queue, heightmap: &[Heightmap])
     {   
-        self.heightmap_buffer.update(queue, &heightmap);
+        self.heightmap_texture.update(queue, &heightmap);
     }
 
     pub fn update_instance_buffer(&mut self, queue: &mut wgpu::Queue, instances: &[Instance])
@@ -73,7 +81,7 @@ impl Mesh
     {
         self.vertex_buffer.bind(render_pass);
         textures[self.texture_index].bind(render_pass);
-        self.heightmap_buffer.bind(render_pass);
+        self.heightmap_texture.bind(render_pass);
         self.index_buffer.bind(render_pass);
         self.instance_buffer.bind_slot(render_pass, 1);
 

@@ -4,14 +4,15 @@
 mod pipeline;
 mod mesh;
 mod heightmap;
-mod heightmap_buffer;
+mod heightmap_texture;
 mod heightmap_bind_group_layout;
 
 pub use pipeline::Pipeline;
 pub use mesh::Mesh;
 
 pub use heightmap::Heightmap;
-pub use heightmap_buffer::HeightmapBuffer;
+pub use heightmap::Heightmap2D;
+pub use heightmap_texture::HeightmapTexture;
 pub use heightmap_bind_group_layout::HeightmapBindGroupLayout;
 
 pub use super::vertex_texture_shader::Vertex;
