@@ -300,7 +300,7 @@ impl WaveSimulation
             mouse_pressed_camera: false,
             mouse_pressed_forces: false,
             show_performance_graph: false,
-            show_textured_grid: false,
+            show_textured_grid: true,
             mouse_selector,
 
             wave_equation,
@@ -487,18 +487,19 @@ impl WaveSimulation
             for x in 0..N {
 
                 let val = self.wave_equation.get_current()[y][x];
-                let val_colour = ((val + 1.0) * 0.5) as f64;
-
-                let color = gradient.eval_continuous(val_colour);
-
-                let r = color.r as f32 / 255.0;
-                let g = color.g as f32 / 255.0;
-                let b = color.b as f32 / 255.0;
-
-                self.grid_host.colors[y][x].color = [r, g, b];
-                self.grid_host.vertices[y][x].position[2] = val * 1.0;
-
                 self.grid_host.heightmap[y][x].height = val * 1.0;
+                if !self.show_textured_grid {
+                    let val_colour = ((val + 1.0) * 0.5) as f64;
+
+                    let color = gradient.eval_continuous(val_colour);
+
+                    let r = color.r as f32 / 255.0;
+                    let g = color.g as f32 / 255.0;
+                    let b = color.b as f32 / 255.0;
+
+                    self.grid_host.colors[y][x].color = [r, g, b];
+                    self.grid_host.vertices[y][x].position[2] = val * 1.0;
+                }
             }
         }
     }
@@ -519,7 +520,7 @@ impl WaveSimulation
 
         // calculate simulation step
         self.watch.start(1);
-            self.wave_equation.step();
+            self.wave_equation.step(Some(4));
         self.watch.stop(1);
         
         // convert to colours
@@ -529,12 +530,14 @@ impl WaveSimulation
 
         // mesh
         self.watch.start(3);
-            self.grid_device.update_vertex_buffer(&mut self.wgpu_renderer.queue(), &self.grid_host.vertices_slice());
-            self.grid_device.update_color_buffer(&mut self.wgpu_renderer.queue(), &self.grid_host.colors_slice());
-            self.grid_device.update_instance_buffer(&mut self.wgpu_renderer.queue(), &self.grid_instances);
-
-            self.grid_heightmap_device.update_heightmap_texture(&mut self.wgpu_renderer.queue(), &self.grid_host.heightmap_slice());
-            self.grid_heightmap_device.update_instance_buffer(&mut self.wgpu_renderer.queue(), &self.grid_instances);
+            if self.show_textured_grid {
+                self.grid_heightmap_device.update_heightmap_texture(&mut self.wgpu_renderer.queue(), &self.grid_host.heightmap_slice());
+                self.grid_heightmap_device.update_instance_buffer(&mut self.wgpu_renderer.queue(), &self.grid_instances);
+            } else {
+                self.grid_device.update_vertex_buffer(&mut self.wgpu_renderer.queue(), &self.grid_host.vertices_slice());
+                self.grid_device.update_color_buffer(&mut self.wgpu_renderer.queue(), &self.grid_host.colors_slice());
+                self.grid_device.update_instance_buffer(&mut self.wgpu_renderer.queue(), &self.grid_instances);
+            }
         self.watch.stop(3);
 
         // performance monitor
