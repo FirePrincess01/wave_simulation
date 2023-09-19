@@ -49,4 +49,4 @@ jobs:
     - uses: actions/upload-artifact@v3
       with:
         name: wave_simulation_windows
-        path: target/release/app # or path/to/artifact
+        path: target/release/app.exe # or path/to/artifact
