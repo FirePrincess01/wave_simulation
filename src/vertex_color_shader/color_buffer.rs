@@ -9,7 +9,7 @@ pub struct ColorBuffer {
 }
 
 impl ColorBuffer {
-    pub fn new(device: &mut wgpu::Device, colors: &[Color])  -> Self
+    pub fn new(device: &wgpu::Device, colors: &[Color])  -> Self
     {
         let buffer = device.create_buffer_init(
             &wgpu::util::BufferInitDescriptor {
@@ -24,7 +24,7 @@ impl ColorBuffer {
         }
     }
 
-    pub fn update(&mut self, queue: &mut wgpu::Queue, colors: &[Color])
+    pub fn update(&mut self, queue: &wgpu::Queue, colors: &[Color])
     {   
         let data = bytemuck::cast_slice(colors);
 

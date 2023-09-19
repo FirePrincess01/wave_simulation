@@ -62,14 +62,14 @@ impl<const M:usize, const N:usize, const MN: usize> Grid<M, N, MN> {
                 let i = (y * (N-1) + x) * 6;
 
                 // A, B, C,
-                indices[i+0] = ((y + 0) * N + (x + 0)) as u32;
-                indices[i+1] = ((y + 0) * N + (x + 1)) as u32;
+                indices[i  ] = ((y    ) * N + (x    )) as u32;
+                indices[i+1] = ((y    ) * N + (x + 1)) as u32;
                 indices[i+2] = ((y + 1) * N + (x + 1)) as u32;
 
                 // C, D, A,
                 indices[i+3] = ((y + 1) * N + (x + 1)) as u32;
-                indices[i+4] = ((y + 1) * N + (x + 0)) as u32;
-                indices[i+5] = ((y + 0) * N + (x + 0)) as u32;
+                indices[i+4] = ((y + 1) * N + (x    )) as u32;
+                indices[i+5] = ((y    ) * N + (x    )) as u32;
             }
         }
 
@@ -85,24 +85,28 @@ impl<const M:usize, const N:usize, const MN: usize> Grid<M, N, MN> {
     }
 
     pub fn vertices_slice(&self) -> &[Vertex] {
+        #[allow(clippy::let_and_return)]
         let data = unsafe { std::mem::transmute::<&[[Vertex; N]; M],  &[Vertex; MN]>  (&*self.vertices) };
         
         data
     }
 
     pub fn vertices_textured_slice(&self) -> &[VertexTextured] {
+        #[allow(clippy::let_and_return)]
         let data = unsafe { std::mem::transmute::<&[[VertexTextured; N]; M],  &[VertexTextured; MN]>  (&*self.vertices_textured) };
         
         data
     }
 
     pub fn heightmap_slice(&self) -> &[Heightmap] {
+        #[allow(clippy::let_and_return)]
         let data = unsafe { std::mem::transmute::<&[[Heightmap; N]; M],  &[Heightmap; MN]>  (&*self.heightmap) };
         
         data
     }
 
     pub fn colors_slice(&self) -> &[Color] {
+        #[allow(clippy::let_and_return)]
         let data = unsafe { std::mem::transmute::<&[[Color; N]; M], &[Color; MN]>  (&*self.colors) };
 
         data

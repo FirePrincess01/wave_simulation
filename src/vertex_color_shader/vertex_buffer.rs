@@ -9,7 +9,7 @@ pub struct VertexBuffer {
 }
 
 impl VertexBuffer {
-    pub fn new(device: &mut wgpu::Device, vertices: &[Vertex])  -> Self
+    pub fn new(device: &wgpu::Device, vertices: &[Vertex])  -> Self
     {
         let buffer = device.create_buffer_init(
             &wgpu::util::BufferInitDescriptor {
@@ -24,7 +24,7 @@ impl VertexBuffer {
         }
     }
 
-    pub fn update(&mut self, queue: &mut wgpu::Queue, vertices: &[Vertex])
+    pub fn update(&mut self, queue: &wgpu::Queue, vertices: &[Vertex])
     {   
         let data = bytemuck::cast_slice(vertices);
 

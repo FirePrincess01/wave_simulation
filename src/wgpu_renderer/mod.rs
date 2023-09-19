@@ -74,6 +74,7 @@ impl WgpuRenderer
         // Shader code in this tutorial assumes an sRGB surface texture. Using a different
         // one will result all the colors coming out darker. If you want to support non
         // sRGB surfaces, you'll need to account fo that when drawing to the frame.
+        #[allow(clippy::filter_next)]
         let surface_format = surface_caps.formats.iter()
             .copied()
             .filter(|f| f.is_srgb())

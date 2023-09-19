@@ -25,7 +25,7 @@ pub struct Mesh
 
 impl Mesh
 {
-    pub fn new(device: &mut wgpu::Device, 
+    pub fn new(device: &wgpu::Device, 
         vertices: &[Vertex],
         texture_index: usize,
         heightmap2d: &Heightmap2D,
@@ -56,7 +56,7 @@ impl Mesh
         }
     }
 
-    pub fn _update_vertex_buffer(&mut self, queue: &mut wgpu::Queue, vertices: &[Vertex])
+    pub fn _update_vertex_buffer(&mut self, queue: &wgpu::Queue, vertices: &[Vertex])
     {   
         self.vertex_buffer.update(queue, vertices);
     }
@@ -66,12 +66,12 @@ impl Mesh
         self.texture_index = texture_index;
     }
 
-    pub fn update_heightmap_texture(&mut self, queue: &mut wgpu::Queue, heightmap: &[Heightmap])
+    pub fn update_heightmap_texture(&mut self, queue: &wgpu::Queue, heightmap: &[Heightmap])
     {   
         self.heightmap_texture.update(queue, heightmap);
     }
 
-    pub fn update_instance_buffer(&mut self, queue: &mut wgpu::Queue, instances: &[Instance])
+    pub fn update_instance_buffer(&mut self, queue: &wgpu::Queue, instances: &[Instance])
     {
         let instance_data = &instances.iter().map(Instance::to_raw).collect::<Vec<_>>();
         self.instance_buffer.update(queue, instance_data);

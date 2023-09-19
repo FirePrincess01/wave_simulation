@@ -7,7 +7,7 @@ pub struct HeightmapBindGroupLayout {
 
 impl HeightmapBindGroupLayout {
 
-    pub fn new(device: &mut wgpu::Device) -> Self {
+    pub fn new(device: &wgpu::Device) -> Self {
 
         // Texture
         let heightmap_bind_group_layout =

@@ -91,29 +91,29 @@ impl WaveSimulation
     {
         let size = window.inner_size();
         let scale_factor = window.scale_factor() as f32;
-        let mut wgpu_renderer = wgpu_renderer::WgpuRenderer::new(&window).await;
+        let mut wgpu_renderer = wgpu_renderer::WgpuRenderer::new(window).await;
         let surface_format = wgpu_renderer.config().format;
-        let camera_bind_group_layout = vertex_color_shader::CameraBindGroupLayout::new(&mut wgpu_renderer.device());
+        let camera_bind_group_layout = vertex_color_shader::CameraBindGroupLayout::new(wgpu_renderer.device());
         let pipeline = vertex_color_shader::Pipeline::new(
-            &mut wgpu_renderer.device(), 
+            wgpu_renderer.device(), 
             &camera_bind_group_layout, 
             surface_format,
         );
         let pipeline_lines = vertex_color_shader::Pipeline::new_lines(
-            &mut wgpu_renderer.device(), 
+            wgpu_renderer.device(), 
             &camera_bind_group_layout, 
             surface_format,
         );
-        let texture_bind_group_layout = vertex_texture_shader::TextureBindGroupLayout::new(&mut wgpu_renderer.device());
+        let texture_bind_group_layout = vertex_texture_shader::TextureBindGroupLayout::new(wgpu_renderer.device());
         let pipeline_texture = vertex_texture_shader::Pipeline::new(
-            &mut wgpu_renderer.device(), 
+            wgpu_renderer.device(), 
             &camera_bind_group_layout, 
             &texture_bind_group_layout, 
             surface_format
         );
-        let heightmap_bind_group_layout = vertex_heightmap_shader::HeightmapBindGroupLayout::new(&mut wgpu_renderer.device());
+        let heightmap_bind_group_layout = vertex_heightmap_shader::HeightmapBindGroupLayout::new(wgpu_renderer.device());
         let pipeline_heightmap = vertex_heightmap_shader::Pipeline::new(
-            &mut wgpu_renderer.device(), 
+            wgpu_renderer.device(), 
             &camera_bind_group_layout, 
             &texture_bind_group_layout, 
             &heightmap_bind_group_layout,
@@ -140,12 +140,12 @@ impl WaveSimulation
         let camera_uniform = vertex_color_shader::CameraUniform::new();
 
         let camera_uniform_buffer = vertex_color_shader::CameraUniformBuffer::new(
-            &mut wgpu_renderer.device(), 
+            wgpu_renderer.device(), 
             &camera_bind_group_layout);
 
         let camera_uniform_orthographic: vertex_color_shader::CameraUniform = vertex_color_shader::CameraUniform::new_orthographic(width, height);
         let mut camera_uniform_orthographic_buffer = vertex_color_shader::CameraUniformBuffer::new(
-                &mut wgpu_renderer.device(), 
+                wgpu_renderer.device(), 
                 &camera_bind_group_layout);
 
         camera_uniform_orthographic_buffer.update(wgpu_renderer.queue(), camera_uniform_orthographic);   // add uniform identity matrix
@@ -167,26 +167,26 @@ impl WaveSimulation
         let mouse_selector = mouse_selector::MouseSelector::new(width, height, (fovy / 2.).tan() * 1.5, grid_instances[WAVE_INDEX]);
 
         let grid_device = vertex_color_shader::Mesh::new(
-            &mut wgpu_renderer.device(),
-            &grid_host.vertices_slice(),
-            &grid_host.colors_slice(),
-            &grid_host.indices_slice(),
+            wgpu_renderer.device(),
+            grid_host.vertices_slice(),
+            grid_host.colors_slice(),
+            grid_host.indices_slice(),
             &grid_instances,
         );
 
         let heightmap = vertex_heightmap_shader::Heightmap2D{
-            data: &grid_host.heightmap_slice(),
+            data: grid_host.heightmap_slice(),
             width: M as u32,
             height: N as u32, 
         };
 
         let grid_heightmap_device = vertex_heightmap_shader::Mesh::new(
-            &mut wgpu_renderer.device(),
-            &grid_host.vertices_textured_slice(),
+            wgpu_renderer.device(),
+            grid_host.vertices_textured_slice(),
             0, 
             &heightmap,
             &heightmap_bind_group_layout,
-            &grid_host.indices_slice(),
+            grid_host.indices_slice(),
             &grid_instances,
         );
 
@@ -202,10 +202,10 @@ impl WaveSimulation
         };
         let graph_instances = [graph_instance];
         let graph_device = vertex_color_shader::Mesh::new(
-            &mut wgpu_renderer.device(),
-            &graph_host.vertices.as_slice(),
-            &graph_host.colors.as_slice(),
-            &graph_host.indices.as_slice(),
+            wgpu_renderer.device(),
+            graph_host.vertices.as_slice(),
+            graph_host.colors.as_slice(),
+            graph_host.indices.as_slice(),
             &graph_instances,
         );
 
@@ -215,11 +215,11 @@ impl WaveSimulation
         let diffuse_rgba = diffuse_image.to_rgba8();
 
         let diffuse_texture = vertex_texture_shader::Texture::new(
-            &mut wgpu_renderer.device(), 
+            wgpu_renderer.device(), 
             &texture_bind_group_layout, 
             &diffuse_rgba, 
             Some("pony2.png")).unwrap(); 
-        diffuse_texture.write(&mut wgpu_renderer.queue(), &diffuse_rgba);
+        diffuse_texture.write(wgpu_renderer.queue(), &diffuse_rgba);
 
         let textures = vec![diffuse_texture];
 
@@ -529,18 +529,18 @@ impl WaveSimulation
 
         // mesh
         self.watch.start(3);
-            self.grid_device.update_vertex_buffer(&mut self.wgpu_renderer.queue(), &self.grid_host.vertices_slice());
-            self.grid_device.update_color_buffer(&mut self.wgpu_renderer.queue(), &self.grid_host.colors_slice());
-            self.grid_device.update_instance_buffer(&mut self.wgpu_renderer.queue(), &self.grid_instances);
+            self.grid_device.update_vertex_buffer(self.wgpu_renderer.queue(), self.grid_host.vertices_slice());
+            self.grid_device.update_color_buffer(self.wgpu_renderer.queue(), self.grid_host.colors_slice());
+            self.grid_device.update_instance_buffer(self.wgpu_renderer.queue(), &self.grid_instances);
 
-            self.grid_heightmap_device.update_heightmap_texture(&mut self.wgpu_renderer.queue(), &self.grid_host.heightmap_slice());
-            self.grid_heightmap_device.update_instance_buffer(&mut self.wgpu_renderer.queue(), &self.grid_instances);
+            self.grid_heightmap_device.update_heightmap_texture(self.wgpu_renderer.queue(), self.grid_host.heightmap_slice());
+            self.grid_heightmap_device.update_instance_buffer(self.wgpu_renderer.queue(), &self.grid_instances);
         self.watch.stop(3);
 
         // performance monitor
         self.watch.update();
         self.watch.update_viewer(&mut self.graph_host);
-        self.graph_device.update_vertex_buffer(&mut self.wgpu_renderer.queue(), self.graph_host.vertices.as_slice());
+        self.graph_device.update_vertex_buffer(self.wgpu_renderer.queue(), self.graph_host.vertices.as_slice());
     }
 
     fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
@@ -569,7 +569,7 @@ impl WaveSimulation
                     }
                 })], 
                 depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
-                    view: &self.wgpu_renderer.get_depth_texture_view(),
+                    view: self.wgpu_renderer.get_depth_texture_view(),
                     depth_ops: Some(wgpu::Operations {
                         load: wgpu::LoadOp::Clear(1.0),
                         store: true,

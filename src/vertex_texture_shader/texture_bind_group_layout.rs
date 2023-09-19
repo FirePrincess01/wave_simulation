@@ -8,7 +8,7 @@ pub struct TextureBindGroupLayout {
 
 impl TextureBindGroupLayout {
 
-    pub fn new(device: &mut wgpu::Device) -> Self {
+    pub fn new(device: &wgpu::Device) -> Self {
 
         // Texture
         let texture_bind_group_layout =

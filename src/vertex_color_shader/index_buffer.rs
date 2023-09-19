@@ -9,7 +9,7 @@ pub struct IndexBuffer {
 }
 
 impl IndexBuffer {
-    pub fn new(device: &mut wgpu::Device, indices: &[u32])  -> Self
+    pub fn new(device: &wgpu::Device, indices: &[u32])  -> Self
     {
         let buffer = device.create_buffer_init(
             &wgpu::util::BufferInitDescriptor {

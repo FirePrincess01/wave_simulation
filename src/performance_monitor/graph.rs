@@ -93,11 +93,12 @@ impl Graph {
         let len = watchpoints.len()*2 + 2;
         let mut line: Vec<f32> = vec![0.0; len];
 
-        for i in 0..watchpoints.len() {
+        // for i in 0..watchpoints.len() {
+        for (i, watchpoint) in watchpoints.iter().enumerate() {
             let j = i * 2;
 
-            line[j] =   (watchpoints[i].start - last_update_time).as_micros() as f32 *  Self::LEN_PER_MICRO;
-            line[j+1] = (watchpoints[i].stop - last_update_time).as_micros() as f32 *  Self::LEN_PER_MICRO;
+            line[j] =   (watchpoint.start - last_update_time).as_micros() as f32 *  Self::LEN_PER_MICRO;
+            line[j+1] = (watchpoint.stop - last_update_time).as_micros() as f32 *  Self::LEN_PER_MICRO;
         }
 
         line[len-2] = 0.0;
@@ -111,7 +112,7 @@ impl Graph {
         let len = vertices.len();
         let vertices = &mut vertices[0..len - Self::FPS_LINES.len()];
 
-        assert!(vertices.len() > 0);
+        assert!(!vertices.is_empty());
         assert!(vertices.len() % line.len() == 0);
 
         vertices.rotate_right(line.len());
