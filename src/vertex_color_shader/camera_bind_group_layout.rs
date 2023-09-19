@@ -7,7 +7,7 @@ pub struct CameraBindGroupLayout {
 
 impl CameraBindGroupLayout {
 
-    pub fn new(device: &mut wgpu::Device) -> Self {
+    pub fn new(device: &wgpu::Device) -> Self {
 
             // Camera
         let camera_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {

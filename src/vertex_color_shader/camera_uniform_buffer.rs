@@ -11,7 +11,7 @@ pub struct CameraUniformBuffer{
 }
 
 impl CameraUniformBuffer {
-    pub fn new(device: &mut wgpu::Device, camera_bind_group_layout: &camera_bind_group_layout::CameraBindGroupLayout) -> Self {
+    pub fn new(device: &wgpu::Device, camera_bind_group_layout: &camera_bind_group_layout::CameraBindGroupLayout) -> Self {
 
         let camera_uniform = camera_uniform::CameraUniform::new();
 
@@ -24,7 +24,7 @@ impl CameraUniformBuffer {
         );
 
         let camera_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            layout: &camera_bind_group_layout.get(),
+            layout: camera_bind_group_layout.get(),
             entries: &[
                 wgpu::BindGroupEntry {
                     binding: 0,
@@ -40,7 +40,7 @@ impl CameraUniformBuffer {
         }
     }
 
-    pub fn update(&mut self, queue: &mut wgpu::Queue, camera_uniform: camera_uniform::CameraUniform)
+    pub fn update(&mut self, queue: &wgpu::Queue, camera_uniform: camera_uniform::CameraUniform)
     {
         queue.write_buffer(&self.camera_buffer, 0, bytemuck::cast_slice(&[camera_uniform]));
     }

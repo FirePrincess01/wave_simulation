@@ -19,15 +19,15 @@ pub struct Pipeline
 
 impl Pipeline
 {
-    pub fn new_lines(device: &mut wgpu::Device, camera_bind_group_layout: &camera_bind_group_layout::CameraBindGroupLayout, surface_format: wgpu::TextureFormat) -> Self {
+    pub fn new_lines(device: &wgpu::Device, camera_bind_group_layout: &camera_bind_group_layout::CameraBindGroupLayout, surface_format: wgpu::TextureFormat) -> Self {
         Self::new_parameterized(device, camera_bind_group_layout, surface_format, wgpu::PrimitiveTopology::LineList)
     }
 
-    pub fn new(device: &mut wgpu::Device, camera_bind_group_layout: &camera_bind_group_layout::CameraBindGroupLayout, surface_format: wgpu::TextureFormat) -> Self {
+    pub fn new(device: &wgpu::Device, camera_bind_group_layout: &camera_bind_group_layout::CameraBindGroupLayout, surface_format: wgpu::TextureFormat) -> Self {
         Self::new_parameterized(device, camera_bind_group_layout, surface_format, wgpu::PrimitiveTopology::TriangleList)
     }
 
-    fn new_parameterized(device: &mut wgpu::Device, camera_bind_group_layout: &camera_bind_group_layout::CameraBindGroupLayout, surface_format: wgpu::TextureFormat, topology: wgpu::PrimitiveTopology) -> Self
+    fn new_parameterized(device: &wgpu::Device, camera_bind_group_layout: &camera_bind_group_layout::CameraBindGroupLayout, surface_format: wgpu::TextureFormat, topology: wgpu::PrimitiveTopology) -> Self
     {
         // Shader
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
@@ -68,7 +68,7 @@ impl Pipeline
                 })],
             }),
             primitive: wgpu::PrimitiveState {
-                topology: topology, // wgpu::PrimitiveTopology::TriangleList,
+                topology, // wgpu::PrimitiveTopology::TriangleList,
                 strip_index_format: None,
                 front_face: wgpu::FrontFace::Ccw,  // counter-clockwise direction
                 cull_mode: Some(wgpu::Face::Back),
