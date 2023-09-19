@@ -68,7 +68,7 @@ impl Pipeline
                 })],
             }),
             primitive: wgpu::PrimitiveState {
-                topology: topology, // wgpu::PrimitiveTopology::TriangleList,
+                topology, // wgpu::PrimitiveTopology::TriangleList,
                 strip_index_format: None,
                 front_face: wgpu::FrontFace::Ccw,  // counter-clockwise direction
                 cull_mode: Some(wgpu::Face::Back),

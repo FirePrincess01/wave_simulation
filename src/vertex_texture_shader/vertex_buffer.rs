@@ -12,7 +12,7 @@ impl VertexBuffer {
         let buffer = device.create_buffer_init(
             &wgpu::util::BufferInitDescriptor {
                 label: Some("Vertex Buffer"),
-                contents: bytemuck::cast_slice(&vertices),
+                contents: bytemuck::cast_slice(vertices),
                 usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
             }
         );
@@ -24,7 +24,7 @@ impl VertexBuffer {
 
     pub fn update(&mut self, queue: &mut wgpu::Queue, vertices: &[Vertex])
     {   
-        let data = bytemuck::cast_slice(&vertices);
+        let data = bytemuck::cast_slice(vertices);
 
         if self.buffer.size() == data.len() as u64 {
             queue.write_buffer(&self.buffer, 0, data);

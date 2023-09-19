@@ -14,7 +14,7 @@ impl ColorBuffer {
         let buffer = device.create_buffer_init(
             &wgpu::util::BufferInitDescriptor {
                 label: Some("Color Buffer"),
-                contents: bytemuck::cast_slice(&colors),
+                contents: bytemuck::cast_slice(colors),
                 usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
             }
         );
@@ -26,7 +26,7 @@ impl ColorBuffer {
 
     pub fn update(&mut self, queue: &mut wgpu::Queue, colors: &[Color])
     {   
-        let data = bytemuck::cast_slice(&colors);
+        let data = bytemuck::cast_slice(colors);
 
         if self.buffer.size() == data.len() as u64 {
             queue.write_buffer(&self.buffer, 0, data);

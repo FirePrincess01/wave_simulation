@@ -14,7 +14,7 @@ impl IndexBuffer {
         let buffer = device.create_buffer_init(
             &wgpu::util::BufferInitDescriptor {
                 label: Some("Index Buffer"),
-                contents: bytemuck::cast_slice(&indices),
+                contents: bytemuck::cast_slice(indices),
                 usage: wgpu::BufferUsages::INDEX,
             }
         );

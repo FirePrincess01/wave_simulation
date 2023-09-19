@@ -42,7 +42,7 @@ impl Graph {
 
         let mut vertices = vec![Vertex::zero(); line_nr_vertices * Self::NR_LINES + Self::FPS_LINES.len()];
         let mut colors = vec![Color::white(); line_nr_vertices * Self::NR_LINES + Self::FPS_LINES.len()];
-        let mut indices = vec![0 as u32; line_nr_vertices * Self::NR_LINES + Self::FPS_LINES.len()];
+        let mut indices = vec![0_u32; line_nr_vertices * Self::NR_LINES + Self::FPS_LINES.len()];
 
         // vertices
         for i in 0..Self::FPS_LINES.len() {
@@ -75,8 +75,8 @@ impl Graph {
         }
 
         // indices
-        for i in 0..indices.len() {
-            indices[i] = i as u32;
+        for (i, item) in indices.iter_mut().enumerate() {
+            *item = i as u32;
         }
 
         Self {

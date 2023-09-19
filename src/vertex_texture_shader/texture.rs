@@ -56,7 +56,7 @@ impl Texture {
 
         let bind_group = device.create_bind_group(
             &wgpu::BindGroupDescriptor {
-                layout: &texture_bind_group_layout.get(),
+                layout: texture_bind_group_layout.get(),
                 entries: &[
                     wgpu::BindGroupEntry {
                         binding: 0,
@@ -90,7 +90,7 @@ impl Texture {
                 mip_level: 0,
                 origin: wgpu::Origin3d::ZERO,
             },
-            &rgba,
+            rgba,
             wgpu::ImageDataLayout {
                 offset: 0,
                 bytes_per_row:  Some(4 * dimensions.0),

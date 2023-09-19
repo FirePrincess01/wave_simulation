@@ -24,7 +24,7 @@ impl CameraUniformBuffer {
         );
 
         let camera_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            layout: &camera_bind_group_layout.get(),
+            layout: camera_bind_group_layout.get(),
             entries: &[
                 wgpu::BindGroupEntry {
                     binding: 0,
