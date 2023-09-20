@@ -49,28 +49,27 @@ fn vs_main(
     let posz = pos_rgb.r;
     var normal = vec3<f32>(0.,0.,1.);   // normal derivatives are 0 at the boundary
     // If not on boundary use negative derivatives to construct normal
-    // Had multiply by (-1) for unknown reason (texture coordinates?)
     if index.x != 0u && index.x != width - 1u {
-        normal.x = -(textureLoad(t_heightmap, index - vec2<u32>(1u,0u), 0).r - textureLoad(t_heightmap, index + vec2<u32>(1u,0u), 0).r)/2.; // -du/dx
+        normal.x = (textureLoad(t_heightmap, index - vec2<u32>(1u,0u), 0).r - textureLoad(t_heightmap, index + vec2<u32>(1u,0u), 0).r)/2.; // -du/dx
     }
     if index.y != 0u && index.y != height - 1u {
-        normal.y = -(textureLoad(t_heightmap, index - vec2<u32>(0u,1u), 0).r - textureLoad(t_heightmap, index + vec2<u32>(0u,1u), 0).r)/2.; // -du/dy
+        normal.y = (textureLoad(t_heightmap, index - vec2<u32>(0u,1u), 0).r - textureLoad(t_heightmap, index + vec2<u32>(0u,1u), 0).r)/2.; // -du/dy
     }
 
     let world_pos = model_matrix * vec4<f32>(model.position.x, model.position.y, posz, 1.0);
     let cam_to_vertex = normalize(world_pos - camera.view_pos).xyz;
     let normal_world = normalize((model_matrix * vec4<f32>(normal, 0.)).xyz);
     let refraction_index_water = 3./4.;
-    let refracted = refract(cam_to_vertex, - normal_world, refraction_index_water);
+    let refracted = refract(cam_to_vertex, normal_world, refraction_index_water);
     var refracted_local = vec4<f32>(refracted, 0.) * model_matrix; // Transposed multiplication inverts rotations
     refracted_local.y *= -1.; // Texture y is inverse to coordinate y
 
-    let pool_height = 10.;
+    let pool_height = 20.;
     var out: VertexOutput;
     out.tex_coords = model.tex_coords;
     //If the refraction did not fail (only a problem with refraction index > 1)
-    if refracted_local.z != 0. {
-        out.tex_coords += (refracted_local.xy * (posz + pool_height) / (refracted_local.z)) / vec2<f32>(dim);
+    if refracted_local.z <= 0. {
+        out.tex_coords -= (refracted_local.xy * (posz + pool_height) / (refracted_local.z)) / vec2<f32>(dim);
     }
     out.clip_position = camera.view_proj * world_pos;
     return out;
