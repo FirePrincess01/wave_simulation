@@ -49,7 +49,6 @@ fn vs_main(
     let posz = pos_rgb.r;
     var normal = vec3<f32>(0.,0.,1.);   // normal derivatives are 0 at the boundary
     // If not on boundary use negative derivatives to construct normal
-    // Had multiply by (-1) for unknown reason (texture coordinates?)
     if index.x != 0u && index.x != width - 1u {
         normal.x = (textureLoad(t_heightmap, index - vec2<u32>(1u,0u), 0).r - textureLoad(t_heightmap, index + vec2<u32>(1u,0u), 0).r)/2.; // -du/dx
     }
