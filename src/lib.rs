@@ -11,6 +11,7 @@ mod geometry;
 mod wave_equation;
 mod performance_monitor;
 mod mouse_selector;
+mod refraction_shader;
 
 use cgmath::Point3;
 use cgmath::prelude::*;
@@ -112,12 +113,12 @@ impl WaveSimulation
             surface_format
         );
         let heightmap_bind_group_layout = vertex_heightmap_shader::HeightmapBindGroupLayout::new(wgpu_renderer.device());
-        let pipeline_heightmap = vertex_heightmap_shader::Pipeline::new(
+        let pipeline_heightmap = refraction_shader::create_refraction_pipeline(
             wgpu_renderer.device(), 
             &camera_bind_group_layout, 
             &texture_bind_group_layout, 
             &heightmap_bind_group_layout,
-            surface_format
+            surface_format,
         );
 
         let position = Point3::new(0.0, 0.0, 0.0);
@@ -176,8 +177,8 @@ impl WaveSimulation
 
         let heightmap = vertex_heightmap_shader::Heightmap2D{
             data: grid_host.heightmap_slice(),
-            width: M as u32,
-            height: N as u32, 
+            width: N as u32,
+            height: M as u32, 
         };
 
         let grid_heightmap_device = vertex_heightmap_shader::Mesh::new(
@@ -300,7 +301,7 @@ impl WaveSimulation
             mouse_pressed_camera: false,
             mouse_pressed_forces: false,
             show_performance_graph: false,
-            show_textured_grid: false,
+            show_textured_grid: true,
             mouse_selector,
 
             wave_equation,
@@ -487,18 +488,19 @@ impl WaveSimulation
             for x in 0..N {
 
                 let val = self.wave_equation.get_current()[y][x];
-                let val_colour = ((val + 1.0) * 0.5) as f64;
-
-                let color = gradient.eval_continuous(val_colour);
-
-                let r = color.r as f32 / 255.0;
-                let g = color.g as f32 / 255.0;
-                let b = color.b as f32 / 255.0;
-
-                self.grid_host.colors[y][x].color = [r, g, b];
-                self.grid_host.vertices[y][x].position[2] = val * 1.0;
-
                 self.grid_host.heightmap[y][x].height = val * 1.0;
+                if !self.show_textured_grid {
+                    let val_colour = ((val + 1.0) * 0.5) as f64;
+
+                    let color = gradient.eval_continuous(val_colour);
+
+                    let r = color.r as f32 / 255.0;
+                    let g = color.g as f32 / 255.0;
+                    let b = color.b as f32 / 255.0;
+
+                    self.grid_host.colors[y][x].color = [r, g, b];
+                    self.grid_host.vertices[y][x].position[2] = val * 1.0;
+                }
             }
         }
     }
@@ -519,7 +521,7 @@ impl WaveSimulation
 
         // calculate simulation step
         self.watch.start(1);
-            self.wave_equation.step();
+            self.wave_equation.step(Some(1));
         self.watch.stop(1);
         
         // convert to colours
@@ -529,12 +531,14 @@ impl WaveSimulation
 
         // mesh
         self.watch.start(3);
-            self.grid_device.update_vertex_buffer(self.wgpu_renderer.queue(), self.grid_host.vertices_slice());
-            self.grid_device.update_color_buffer(self.wgpu_renderer.queue(), self.grid_host.colors_slice());
-            self.grid_device.update_instance_buffer(self.wgpu_renderer.queue(), &self.grid_instances);
-
-            self.grid_heightmap_device.update_heightmap_texture(self.wgpu_renderer.queue(), self.grid_host.heightmap_slice());
-            self.grid_heightmap_device.update_instance_buffer(self.wgpu_renderer.queue(), &self.grid_instances);
+            if self.show_textured_grid {
+                self.grid_heightmap_device.update_heightmap_texture(self.wgpu_renderer.queue(), self.grid_host.heightmap_slice());
+                self.grid_heightmap_device.update_instance_buffer(self.wgpu_renderer.queue(), &self.grid_instances);
+            } else {
+                self.grid_device.update_vertex_buffer(self.wgpu_renderer.queue(), self.grid_host.vertices_slice());
+                self.grid_device.update_color_buffer(self.wgpu_renderer.queue(), self.grid_host.colors_slice());
+                self.grid_device.update_instance_buffer(self.wgpu_renderer.queue(), &self.grid_instances);
+            }
         self.watch.stop(3);
 
         // performance monitor

@@ -3,6 +3,8 @@
 //! It uses the Verlet Method on a 2D grid 
 //!
 
+use cgmath::num_traits::Pow;
+
 pub struct WaveEquation<const M:usize, const N:usize> {
 
     previous: Box<[[f32; N]; M]>,
@@ -40,35 +42,38 @@ impl<const M:usize, const N:usize>  WaveEquation<M, N>{
         }
     }
 
-    pub fn step(&mut self) {
-
-        #[allow(clippy::explicit_auto_deref)]
-        let previous: &[[f32; N]; M] = &*self.previous;
-        let current =  &*self.current;
-        let next = &mut *self.next;
-
-        let delta_t = self.delta_t;
+    pub fn step(&mut self, substeps: Option<usize>) {
+        let delta_t = self.delta_t / substeps.unwrap_or(1) as f32;
         let h = self.h;
 
-        let d = 0.999;
+        let d = 0.998.pow(1. / substeps.unwrap_or(1) as f32) as f32 ;
 
+        for _i in 0..substeps.unwrap_or(1) {
+            #[allow(clippy::explicit_auto_deref)]
+            let previous: &[[f32; N]; M] = &*self.previous;
+            let current =  &*self.current;
+            let next = &mut *self.next;
+            for y in 0..M {
+                for x in 0..N {
+                    next[y][x] = d *(2.0 * current[y][x] - previous[y][x] + 
+                    (delta_t*delta_t) / (h*h) * 
+                    (current[y][x.saturating_add_signed(-1)] + 
+                    current[y][(x+1).min(N-1)] + 
+                    current[y.saturating_add_signed(-1)][x] + 
+                    current[(y+1).min(M-1)][x] - 
+                    4.0*current[y][x]
+                    + self.forces[y][x]));
+                }
+            }
+            
+            std::mem::swap(&mut self.previous,&mut self.current);
+            std::mem::swap(&mut self.current,&mut self.next);
+        }
         for y in 0..M {
             for x in 0..N {
-                next[y][x] = d *(2.0 * current[y][x] - previous[y][x] + 
-                (delta_t*delta_t) / (h*h) * 
-                (current[y][x.saturating_add_signed(-1)] + 
-                current[y][(x+1).min(N-1)] + 
-                current[y.saturating_add_signed(-1)][x] + 
-                current[(y+1).min(M-1)][x] - 
-                4.0*current[y][x]
-                + self.forces[y][x]));
-                
                 self.forces[y][x] = 0.0;
             }
         }
-        
-        std::mem::swap(&mut self.previous,&mut self.current);
-        std::mem::swap(&mut self.current,&mut self.next);
 
     }
 

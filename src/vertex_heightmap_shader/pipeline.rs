@@ -22,12 +22,13 @@ impl Pipeline
         camera_bind_group_layout: &CameraBindGroupLayout, 
         texture_bind_group_layout: &TextureBindGroupLayout, 
         heightmap_bind_group_layout: &HeightmapBindGroupLayout, 
-        surface_format: wgpu::TextureFormat) -> Self
+        surface_format: wgpu::TextureFormat,
+        shader_code: Option<&str>) -> Self
     {
         // Shader
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("Heightmap Shader"),
-            source: wgpu::ShaderSource::Wgsl(include_str!("shader.wgsl").into()),
+            source: wgpu::ShaderSource::Wgsl(shader_code.unwrap_or(include_str!("shader.wgsl")).into()),
         });
 
 
