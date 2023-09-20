@@ -11,6 +11,7 @@ mod geometry;
 mod wave_equation;
 mod performance_monitor;
 mod mouse_selector;
+mod refraction_shader;
 
 use cgmath::Point3;
 use cgmath::prelude::*;
@@ -112,12 +113,12 @@ impl WaveSimulation
             surface_format
         );
         let heightmap_bind_group_layout = vertex_heightmap_shader::HeightmapBindGroupLayout::new(wgpu_renderer.device());
-        let pipeline_heightmap = vertex_heightmap_shader::Pipeline::new(
+        let pipeline_heightmap = refraction_shader::create_refraction_pipeline(
             wgpu_renderer.device(), 
             &camera_bind_group_layout, 
             &texture_bind_group_layout, 
             &heightmap_bind_group_layout,
-            surface_format
+            surface_format,
         );
 
         let position = Point3::new(0.0, 0.0, 0.0);
@@ -520,7 +521,7 @@ impl WaveSimulation
 
         // calculate simulation step
         self.watch.start(1);
-            self.wave_equation.step(Some(4));
+            self.wave_equation.step(Some(1));
         self.watch.stop(1);
         
         // convert to colours
@@ -531,12 +532,12 @@ impl WaveSimulation
         // mesh
         self.watch.start(3);
             if self.show_textured_grid {
-                self.grid_heightmap_device.update_heightmap_texture(&mut self.wgpu_renderer.queue(), &self.grid_host.heightmap_slice());
-                self.grid_heightmap_device.update_instance_buffer(&mut self.wgpu_renderer.queue(), &self.grid_instances);
+                self.grid_heightmap_device.update_heightmap_texture(self.wgpu_renderer.queue(), self.grid_host.heightmap_slice());
+                self.grid_heightmap_device.update_instance_buffer(self.wgpu_renderer.queue(), &self.grid_instances);
             } else {
-                self.grid_device.update_vertex_buffer(&mut self.wgpu_renderer.queue(), &self.grid_host.vertices_slice());
-                self.grid_device.update_color_buffer(&mut self.wgpu_renderer.queue(), &self.grid_host.colors_slice());
-                self.grid_device.update_instance_buffer(&mut self.wgpu_renderer.queue(), &self.grid_instances);
+                self.grid_device.update_vertex_buffer(self.wgpu_renderer.queue(), self.grid_host.vertices_slice());
+                self.grid_device.update_color_buffer(self.wgpu_renderer.queue(), self.grid_host.colors_slice());
+                self.grid_device.update_instance_buffer(self.wgpu_renderer.queue(), &self.grid_instances);
             }
         self.watch.stop(3);
 

@@ -46,7 +46,7 @@ impl<const M:usize, const N:usize>  WaveEquation<M, N>{
         let delta_t = self.delta_t / substeps.unwrap_or(1) as f32;
         let h = self.h;
 
-        let d = 0.999.pow(1. / substeps.unwrap_or(1) as f32) as f32 ;
+        let d = 0.998.pow(1. / substeps.unwrap_or(1) as f32) as f32 ;
 
         for _i in 0..substeps.unwrap_or(1) {
             #[allow(clippy::explicit_auto_deref)]
