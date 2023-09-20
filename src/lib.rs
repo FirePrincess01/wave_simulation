@@ -176,8 +176,8 @@ impl WaveSimulation
 
         let heightmap = vertex_heightmap_shader::Heightmap2D{
             data: grid_host.heightmap_slice(),
-            width: M as u32,
-            height: N as u32, 
+            width: N as u32,
+            height: M as u32, 
         };
 
         let grid_heightmap_device = vertex_heightmap_shader::Mesh::new(
