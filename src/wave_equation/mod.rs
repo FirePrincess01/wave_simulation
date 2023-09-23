@@ -85,7 +85,7 @@ impl<const M:usize, const N:usize>  WaveEquation<M, N>{
             self.mouse_interupted = true;
             return;
         }
-        let force_strength = 4.0;
+        let force_strength = 16.0;
         let same_quad = x.floor() == self.x_old.floor() && y.floor() == self.y_old.floor();
 
         if self.mouse_interupted || same_quad {

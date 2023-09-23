@@ -12,6 +12,7 @@ mod wave_equation;
 mod performance_monitor;
 mod mouse_selector;
 mod refraction_shader;
+mod gui;
 
 use cgmath::Point3;
 use cgmath::prelude::*;
