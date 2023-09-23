@@ -20,4 +20,19 @@ pub fn create_refraction_pipeline(device:
         )
     }
 
-
+    pub fn create_heightmap_color_pipeline(device: 
+        &wgpu::Device, 
+        camera_bind_group_layout: &vertex_heightmap_shader::CameraBindGroupLayout, 
+        texture_bind_group_layout: &vertex_heightmap_shader::TextureBindGroupLayout, 
+        heightmap_bind_group_layout: &vertex_heightmap_shader::HeightmapBindGroupLayout, 
+        surface_format: wgpu::TextureFormat) -> vertex_heightmap_shader::Pipeline
+        {
+            vertex_heightmap_shader::Pipeline::new(
+                device,
+                camera_bind_group_layout,
+                texture_bind_group_layout,
+                heightmap_bind_group_layout,
+                surface_format,
+                Some(include_str!("shader_color.wgsl")),
+            )
+        }

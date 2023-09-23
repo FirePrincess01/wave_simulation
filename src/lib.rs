@@ -41,12 +41,13 @@ struct WaveSimulation
     // wgpu_renderer
     wgpu_renderer : wgpu_renderer::WgpuRenderer,
     _camera_bind_group_layout: vertex_color_shader::CameraBindGroupLayout,
-    pipeline: vertex_color_shader::Pipeline,
+    _pipeline: vertex_color_shader::Pipeline,
     pipeline_lines: vertex_color_shader::Pipeline,
     _texture_bind_group_layout: vertex_texture_shader::TextureBindGroupLayout,
     _pipeline_texture: vertex_texture_shader::Pipeline,
     _heightmap_bind_group_layout: vertex_heightmap_shader::HeightmapBindGroupLayout,
     pipeline_heightmap: vertex_heightmap_shader::Pipeline,
+    pipeline_heightmap_color: vertex_heightmap_shader::Pipeline,
 
     // camera
     camera: wgpu_renderer::camera::Camera,
@@ -64,7 +65,6 @@ struct WaveSimulation
 
     // grid
     grid_host: geometry::Grid<M, N, MN>,
-    grid_device: vertex_color_shader::Mesh,
     grid_instances: Vec<vertex_color_shader::Instance>,
 
     // grid heightmap
@@ -120,6 +120,14 @@ impl WaveSimulation
             &heightmap_bind_group_layout,
             surface_format,
         );
+        let pipeline_heightmap_color = refraction_shader::create_heightmap_color_pipeline(
+            wgpu_renderer.device(), 
+            &camera_bind_group_layout, 
+            &texture_bind_group_layout, 
+            &heightmap_bind_group_layout,
+            surface_format,
+        );
+
 
         let position = Point3::new(0.0, 0.0, 0.0);
         let yaw = cgmath::Deg(0.0);
@@ -166,14 +174,6 @@ impl WaveSimulation
 
         //hacked FoV, application appears to use a multiplicator of exactly 1.5
         let mouse_selector = mouse_selector::MouseSelector::new(width, height, (fovy / 2.).tan() * 1.5, grid_instances[WAVE_INDEX]);
-
-        let grid_device = vertex_color_shader::Mesh::new(
-            wgpu_renderer.device(),
-            grid_host.vertices_slice(),
-            grid_host.colors_slice(),
-            grid_host.indices_slice(),
-            &grid_instances,
-        );
 
         let heightmap = vertex_heightmap_shader::Heightmap2D{
             data: grid_host.heightmap_slice(),
@@ -272,12 +272,13 @@ impl WaveSimulation
 
             wgpu_renderer,
             _camera_bind_group_layout: camera_bind_group_layout,
-            pipeline,
+            _pipeline: pipeline,
             pipeline_lines,
             _texture_bind_group_layout: texture_bind_group_layout,
             _pipeline_texture: pipeline_texture,
             _heightmap_bind_group_layout: heightmap_bind_group_layout,
             pipeline_heightmap,
+            pipeline_heightmap_color,
 
             camera,
             camera_controller,
@@ -290,7 +291,6 @@ impl WaveSimulation
             camera_uniform_orthographic_buffer,
 
             grid_host,
-            grid_device,
     
             grid_instances,
 
@@ -482,25 +482,10 @@ impl WaveSimulation
 
     fn wave_equation_to_grid_host(&mut self) 
     {
-        let gradient = colorous::COOL;
-
         for y in 0..M {
             for x in 0..N {
-
                 let val = self.wave_equation.get_current()[y][x];
                 self.grid_host.heightmap[y][x].height = val * 1.0;
-                if !self.show_textured_grid {
-                    let val_colour = ((val + 1.0) * 0.5) as f64;
-
-                    let color = gradient.eval_continuous(val_colour);
-
-                    let r = color.r as f32 / 255.0;
-                    let g = color.g as f32 / 255.0;
-                    let b = color.b as f32 / 255.0;
-
-                    self.grid_host.colors[y][x].color = [r, g, b];
-                    self.grid_host.vertices[y][x].position[2] = val * 1.0;
-                }
             }
         }
     }
@@ -531,14 +516,8 @@ impl WaveSimulation
 
         // mesh
         self.watch.start(3);
-            if self.show_textured_grid {
-                self.grid_heightmap_device.update_heightmap_texture(self.wgpu_renderer.queue(), self.grid_host.heightmap_slice());
-                self.grid_heightmap_device.update_instance_buffer(self.wgpu_renderer.queue(), &self.grid_instances);
-            } else {
-                self.grid_device.update_vertex_buffer(self.wgpu_renderer.queue(), self.grid_host.vertices_slice());
-                self.grid_device.update_color_buffer(self.wgpu_renderer.queue(), self.grid_host.colors_slice());
-                self.grid_device.update_instance_buffer(self.wgpu_renderer.queue(), &self.grid_instances);
-            }
+            self.grid_heightmap_device.update_heightmap_texture(self.wgpu_renderer.queue(), self.grid_host.heightmap_slice());
+            self.grid_heightmap_device.update_instance_buffer(self.wgpu_renderer.queue(), &self.grid_instances);
         self.watch.stop(3);
 
         // performance monitor
@@ -585,15 +564,12 @@ impl WaveSimulation
             // grid
             if self.show_textured_grid {
                 self.pipeline_heightmap.bind(&mut render_pass);
-                self.camera_uniform_buffer.bind(&mut render_pass);
-                self.grid_heightmap_device.draw(&mut render_pass, &self.textures);
-    
             }
             else {
-                self.pipeline.bind(&mut render_pass);
-                self.camera_uniform_buffer.bind(&mut render_pass);
-                self.grid_device.draw(&mut render_pass);
+                self.pipeline_heightmap_color.bind(&mut render_pass);
             }
+            self.camera_uniform_buffer.bind(&mut render_pass);
+            self.grid_heightmap_device.draw(&mut render_pass, &self.textures);
 
             // performance monitor
             if self.show_performance_graph {
