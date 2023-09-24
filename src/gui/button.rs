@@ -1,5 +1,6 @@
 
 use super::ButtonPressedEvent;
+use super::ChangePositionEvent;
 
 pub struct Button<ButtonId> 
     where ButtonId: Copy
@@ -80,5 +81,13 @@ impl<ButtonId> Button<ButtonId>
         else {
             (true, None)
         }
+    }
+
+    pub fn change_position_event<LabelId>(&self) -> ChangePositionEvent::<ButtonId, LabelId>
+    {
+        ChangePositionEvent::<ButtonId, LabelId>::new_button(
+            self.button_id, 
+            self.abs_x + self.boarder, 
+            self.abs_y + self.boarder)
     }
 }

@@ -93,17 +93,11 @@ where LabelId: Copy,
         match &mut self.element {
             GuiElement::Button(button) => {
                 button.set_abs_pos(self.abs_x, self.abs_y);
-
-                let button_id = button.id();
-                let event = ChangePositionEvent::<ButtonId, LabelId>::new_button(button_id, self.abs_x, self.abs_y);
-                res.push(event);
+                res.push(button.change_position_event());
             }
             GuiElement::Label(label) => {
                 label.set_abs_pos(self.abs_x, self.abs_y);
-
-                let label_id = label.id();
-                let event = ChangePositionEvent::<ButtonId, LabelId>::new_label(label_id, self.abs_x, self.abs_y);
-                res.push(event);
+                res.push(label.change_position_event());
             }
             GuiElement::VerticalLayout(vertical_layout) => {
                 vertical_layout.resize(self.abs_x, self.abs_y, res);

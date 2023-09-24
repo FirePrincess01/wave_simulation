@@ -1,4 +1,5 @@
 
+use super::ChangePositionEvent;
 
 pub struct Label<LabelId> 
     where LabelId: Copy
@@ -68,5 +69,13 @@ impl<LabelId> Label<LabelId>
         }
 
         true
+    }
+
+    pub fn change_position_event<ButtonId>(&self) -> ChangePositionEvent::<ButtonId, LabelId>
+    {
+        ChangePositionEvent::<ButtonId, LabelId>::new_label(
+            self.label_id, 
+            self.abs_x + self.boarder, 
+            self.abs_y + self.boarder)
     }
 }

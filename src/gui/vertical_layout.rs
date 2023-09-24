@@ -79,10 +79,7 @@ where LabelId: Copy,
                     let button_abs_x = abs_x;
                     let button_abs_y = abs_y + delta_height;
                     button.set_abs_pos(button_abs_x, button_abs_y);
-
-                    let button_id = button.id();
-                    let event = ChangePositionEvent::<ButtonId, LabelId>::new_button(button_id, button_abs_x, button_abs_y);
-                    res.push(event);
+                    res.push(button.change_position_event());
                 }
                 GuiElement::Label(label) => {
                     delta_height -= label.height();
@@ -90,17 +87,13 @@ where LabelId: Copy,
                     let label_abs_x = abs_x;
                     let label_abs_y = abs_y + delta_height;
                     label.set_abs_pos(label_abs_x, label_abs_y);
-
-                    let label_id = label.id();
-                    let event = ChangePositionEvent::<ButtonId, LabelId>::new_label(label_id, label_abs_x, label_abs_y);
-                    res.push(event);
+                    res.push(label.change_position_event());
                 }
                 GuiElement::VerticalLayout(vertical_layout) => {
                     delta_height -= vertical_layout.height();
 
                     let vertical_layout_abs_x = abs_x;
                     let vertical_layout_abs_y = abs_y + delta_height;
-
                     vertical_layout.resize(vertical_layout_abs_x, vertical_layout_abs_y, res);
                 }
             }
