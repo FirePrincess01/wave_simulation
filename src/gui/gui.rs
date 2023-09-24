@@ -14,6 +14,7 @@ use super::AlignedElement;
 //     ---------------
 //  (x:0, y:0)       (x:width, y:0)
 
+#[derive(Copy, Clone)]
 pub enum MouseEvent {
     Pressed,
     Released,

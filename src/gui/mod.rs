@@ -14,6 +14,7 @@ pub use gui::Gui;
 pub use gui::ChangePositionEvent;
 pub use gui::ButtonPressedEvent;
 pub use gui::ElementId;
+pub use gui::MouseEvent;
 pub use aligned_element::AlignedElement;
 pub use aligned_element::Alignment;
 pub use vertical_layout::VerticalLayout;

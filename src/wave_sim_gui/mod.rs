@@ -6,7 +6,7 @@ use super::vertex_color_shader;
 #[derive(Debug)]
 #[derive(PartialEq)]
 #[derive(Copy, Clone)]
-enum ButtonOptionsId{
+pub enum ButtonOptionsId{
     SwitchViewPoint,
     SwitchTexture,
     PerformanceGraph,
@@ -58,6 +58,9 @@ impl BtnMesh {
 }
 
 pub struct WaveSimGui {
+    width: u32,
+    height: u32,
+
     btn_vertex_buffer: vertex_color_shader::VertexBuffer,
     btn_index_buffer: vertex_color_shader::IndexBuffer,
 
@@ -78,8 +81,8 @@ pub struct WaveSimGui {
 
 impl WaveSimGui {
     pub fn new(device: &wgpu::Device, width: u32, height: u32) -> Self {
-        let btn_width = 25;
-        let btn_height = 25;
+        let btn_width = 40;
+        let btn_height = 40;
         let btn_boarder = 5;
 
         let btn_vertex_buffer = vertex_color_shader::VertexBuffer::new(device, &Self::vertices(btn_width, btn_height));
@@ -140,7 +143,7 @@ impl WaveSimGui {
             width,
             height,
             vec![
-                AlignedElement::new(Alignment::BottomRight, 10, 50, GuiElement::VerticalLayout(vertical_layout)), 
+                AlignedElement::new(Alignment::BottomRight, 10, 10 + btn_height + 2*btn_boarder, GuiElement::VerticalLayout(vertical_layout)), 
             ]
         );
         let mut btn_switch_view_point_instance = vertex_color_shader::Instance::zero();
@@ -174,6 +177,9 @@ impl WaveSimGui {
 
 
         Self {
+            width,
+            height,
+
             btn_vertex_buffer,
             btn_index_buffer,
 
@@ -185,7 +191,7 @@ impl WaveSimGui {
             btn_switch_texture_mesh,
             btn_performance_graph_mesh,
 
-            show_submenu: true,
+            show_submenu: false,
         }
     }
 
@@ -226,6 +232,67 @@ impl WaveSimGui {
         INDICES
     }
 
+    pub fn mouse_moved(&mut self, x: u32, y: u32) -> bool
+    {
+        // change from mouse coordinate system to the gui coordinate system
+        let y = self.height - y.min(self.height);
+
+        let mouse_event = MouseEvent::Moved{ x, y };
+
+        let (consumed, events) = self.gui_menu.mouse_event(mouse_event);
+        if consumed {
+            return true;
+        }
+
+        if self.show_submenu {
+            let (consumed, events) = self.gui_options.mouse_event(mouse_event);
+            if consumed {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    pub fn mouse_pressed(&mut self, pressed: bool) -> (bool, Option<ButtonPressedEvent<ButtonOptionsId>>)
+    {
+        let mouse_event = if pressed {
+                MouseEvent::Pressed
+            } else {
+                MouseEvent::Released
+            };
+
+        let (consumed, event) = self.gui_menu.mouse_event(mouse_event);
+        if consumed {
+            match event {
+                Some(event) => { 
+                    self.handle_gui_menu_event(event);
+                },
+                None => {},
+            }
+            
+            return (true, None);
+        }
+    
+        if self.show_submenu {
+            let (consumed, event) = self.gui_options.mouse_event(mouse_event);
+            if consumed {
+                return (true, event);
+            }
+        }
+    
+
+        (false, None)
+    }
+
+    fn handle_gui_menu_event(&mut self, event: ButtonPressedEvent<ButtonMenuId>) {
+        match event.button_id {
+            ButtonMenuId::Menu => {
+                self.show_submenu = !self.show_submenu;
+            },
+        }
+    }
+
     pub fn draw<'a>(&'a self, render_pass: &mut wgpu::RenderPass<'a>)
     {
         self.btn_vertex_buffer.bind(render_pass);
@@ -248,6 +315,9 @@ impl WaveSimGui {
 
     pub fn resize(&mut self, queue: &wgpu::Queue, width: u32, height: u32)
     {
+        self.width = width;
+        self.height = height;
+
         let mut btn_menu_instance = vertex_color_shader::Instance::zero();
         let events = self.gui_menu.resize(width, height);
         for event in &events {
