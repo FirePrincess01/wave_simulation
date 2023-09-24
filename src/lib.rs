@@ -43,7 +43,7 @@ struct WaveSimulation
     // wgpu_renderer
     wgpu_renderer : wgpu_renderer::WgpuRenderer,
     _camera_bind_group_layout: vertex_color_shader::CameraBindGroupLayout,
-    pipeline: vertex_color_shader::Pipeline,
+    _pipeline: vertex_color_shader::Pipeline,
     pipeline_lines: vertex_color_shader::Pipeline,
     _texture_bind_group_layout: vertex_texture_shader::TextureBindGroupLayout,
     pipeline_texture_gui: vertex_texture_shader::Pipeline,
@@ -280,7 +280,7 @@ impl WaveSimulation
 
             wgpu_renderer,
             _camera_bind_group_layout: camera_bind_group_layout,
-            pipeline,
+            _pipeline: pipeline,
             pipeline_lines,
             _texture_bind_group_layout: texture_bind_group_layout,
             pipeline_texture_gui,
@@ -475,7 +475,7 @@ impl WaveSimulation
 
                 match touch.phase {
                     TouchPhase::Started => {
-                        let consumed = self.gui.mouse_moved(pos.x as u32, pos.y as u32);
+                        let _consumed = self.gui.mouse_moved(pos.x as u32, pos.y as u32);
                         let (consumed, gui_event) = self.gui.mouse_pressed(true);
                         self.handle_gui_event(gui_event);
 
@@ -485,14 +485,14 @@ impl WaveSimulation
                         }
                     }
                     TouchPhase::Ended => {
-                        let (consumed, gui_event) = self.gui.mouse_pressed(false);
+                        let (_consumed, gui_event) = self.gui.mouse_pressed(false);
                         self.handle_gui_event(gui_event);
 
                         self.mouse_pressed_forces = false;
                         self.wave_equation.interupt_mouse();
                     }
                     TouchPhase::Cancelled => {
-                        let (consumed, gui_event) = self.gui.mouse_pressed(false);
+                        let (_consumed, gui_event) = self.gui.mouse_pressed(false);
                         self.handle_gui_event(gui_event);
 
                         self.mouse_pressed_forces = false;

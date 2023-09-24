@@ -1,4 +1,4 @@
-
+//! Handles the collision detection of gui elements
 
 use super::AlignedElement;
 

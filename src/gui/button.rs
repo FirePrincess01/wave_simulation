@@ -37,7 +37,7 @@ impl<ButtonId> Button<ButtonId>
         }
     }
 
-    pub fn id(&self) -> ButtonId {
+    pub fn _id(&self) -> ButtonId {
         self.button_id
     }
 

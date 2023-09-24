@@ -101,7 +101,7 @@ impl Texture {
         );
     }
 
-    pub fn write(&self, queue: &wgpu::Queue, rgba: &image::ImageBuffer<image::Rgba<u8>, Vec<u8>>, ) 
+    pub fn _write(&self, queue: &wgpu::Queue, rgba: &image::ImageBuffer<image::Rgba<u8>, Vec<u8>>, ) 
     {
         Self::write_texture(queue, &self.texture, rgba);
     }

@@ -4,6 +4,7 @@ use super::GuiElement;
 use super::ChangePositionEvent;
 use super::ButtonPressedEvent;
 
+#[allow(dead_code)]
 pub enum Alignment {
     TopLeft,
     TopRight,

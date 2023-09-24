@@ -15,6 +15,7 @@ pub struct Label<LabelId>
     abs_y: u32,
 }
 
+#[allow(dead_code)]
 impl<LabelId> Label<LabelId>
     where LabelId: Copy
 {

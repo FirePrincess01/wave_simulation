@@ -259,13 +259,13 @@ impl WaveSimGui {
 
         let mouse_event = MouseEvent::Moved{ x, y };
 
-        let (consumed, events) = self.gui_menu.mouse_event(mouse_event);
+        let (consumed, _events) = self.gui_menu.mouse_event(mouse_event);
         if consumed {
             return true;
         }
 
         if self.show_submenu {
-            let (consumed, events) = self.gui_options.mouse_event(mouse_event);
+            let (consumed, _events) = self.gui_options.mouse_event(mouse_event);
             if consumed {
                 return true;
             }
