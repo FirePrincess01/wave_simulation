@@ -18,11 +18,42 @@ pub struct Pipeline
 #[allow(dead_code)]
 impl Pipeline
 {
-    pub fn new(device: 
-        &wgpu::Device, 
+    pub fn new(device: &wgpu::Device, 
         camera_bind_group_layout: &CameraBindGroupLayout, 
         texture_bind_group_layout: &TextureBindGroupLayout, 
         surface_format: wgpu::TextureFormat) -> Self
+    {
+        Self::new_parameterized(device, 
+            camera_bind_group_layout,
+            texture_bind_group_layout,
+            surface_format,
+            wgpu::BlendState::REPLACE,
+            wgpu::CompareFunction::Less
+        )
+    }
+
+    pub fn new_gui(device: &wgpu::Device, 
+        camera_bind_group_layout: &CameraBindGroupLayout, 
+        texture_bind_group_layout: &TextureBindGroupLayout, 
+        surface_format: wgpu::TextureFormat) -> Self
+        {
+            Self::new_parameterized(device, 
+                camera_bind_group_layout,
+                texture_bind_group_layout,
+                surface_format,
+                wgpu::BlendState::ALPHA_BLENDING,
+                wgpu::CompareFunction::Always
+            )
+        }
+
+    pub fn new_parameterized(device: 
+        &wgpu::Device, 
+        camera_bind_group_layout: &CameraBindGroupLayout, 
+        texture_bind_group_layout: &TextureBindGroupLayout, 
+        surface_format: wgpu::TextureFormat,
+        blend: wgpu::BlendState,
+        depth_compare: wgpu::CompareFunction,
+    ) -> Self
     {
         // Shader
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
@@ -61,7 +92,7 @@ impl Pipeline
                 entry_point: "fs_main",
                 targets: &[Some(wgpu::ColorTargetState { 
                     format: surface_format,
-                    blend: Some(wgpu::BlendState::REPLACE),
+                    blend: Some(blend),
                     write_mask: wgpu::ColorWrites::ALL,
                 })],
             }),
@@ -80,7 +111,7 @@ impl Pipeline
             depth_stencil: Some(wgpu::DepthStencilState {
                 format: DepthTexture::DEPTH_FORMAT,
                 depth_write_enabled: true,
-                depth_compare: wgpu::CompareFunction::Less,
+                depth_compare: depth_compare,
                 stencil: wgpu::StencilState::default(),
                 bias: wgpu::DepthBiasState::default(),
             }),

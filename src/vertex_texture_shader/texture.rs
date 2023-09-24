@@ -3,6 +3,7 @@
 
 
 use super::texture_bind_group_layout::TextureBindGroupLayout;
+use super::super::wgpu_renderer;
 use anyhow::*;
 
 pub struct Texture {
@@ -14,7 +15,7 @@ pub struct Texture {
 
 impl Texture {
     pub fn new(
-        device: &wgpu::Device,
+        wgpu_renderer: &mut impl wgpu_renderer::WgpuRendererInterface,
         texture_bind_group_layout: &TextureBindGroupLayout,
         rgba: &image::ImageBuffer<image::Rgba<u8>, Vec<u8>>, 
         label: Option<&str>
@@ -26,7 +27,7 @@ impl Texture {
             depth_or_array_layers: 1,
         };
 
-        let texture = device.create_texture(
+        let texture = wgpu_renderer.device().create_texture(
             &wgpu::TextureDescriptor {
                 label,
                 size,
@@ -39,10 +40,10 @@ impl Texture {
             }
         );
 
-
+        Self::write_texture(wgpu_renderer.queue(), &texture, &rgba);
 
         let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
-        let sampler = device.create_sampler(
+        let sampler = wgpu_renderer.device().create_sampler(
             &wgpu::SamplerDescriptor {
                 address_mode_u: wgpu::AddressMode::ClampToEdge,
                 address_mode_v: wgpu::AddressMode::ClampToEdge,
@@ -54,7 +55,7 @@ impl Texture {
             }
         );
 
-        let bind_group = device.create_bind_group(
+        let bind_group = wgpu_renderer.device().create_bind_group(
             &wgpu::BindGroupDescriptor {
                 layout: texture_bind_group_layout.get(),
                 entries: &[
@@ -74,7 +75,7 @@ impl Texture {
         Ok(Self { texture, view, sampler, bind_group })
     }
 
-    pub fn write(&self, queue: &wgpu::Queue, rgba: &image::ImageBuffer<image::Rgba<u8>, Vec<u8>>, ) 
+    pub fn write_texture(queue: &wgpu::Queue, texture: &wgpu::Texture, rgba: &image::ImageBuffer<image::Rgba<u8>, Vec<u8>>)
     {
         let dimensions = rgba.dimensions();
         let size = wgpu::Extent3d {
@@ -86,7 +87,7 @@ impl Texture {
         queue.write_texture(
             wgpu::ImageCopyTexture {
                 aspect: wgpu::TextureAspect::All,
-                texture: &self.texture,
+                texture: texture,
                 mip_level: 0,
                 origin: wgpu::Origin3d::ZERO,
             },
@@ -98,6 +99,11 @@ impl Texture {
             },
             size,
         );
+    }
+
+    pub fn _write(&self, queue: &wgpu::Queue, rgba: &image::ImageBuffer<image::Rgba<u8>, Vec<u8>>, ) 
+    {
+        Self::write_texture(queue, &self.texture, rgba);
     }
 
     pub fn bind<'a>(&'a self, render_pass: &mut wgpu::RenderPass<'a>,) {

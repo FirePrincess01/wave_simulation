@@ -7,6 +7,15 @@ pub struct Instance {
     pub rotation: glam::Quat,
 }
 
+impl Instance {
+    pub fn zero() -> Self {
+        Self {
+            position: glam::Vec3::new(0.0, 0.0, 0.0),
+            rotation: glam::Quat::IDENTITY,
+        }
+    }
+}
+
 #[repr(C)]
 #[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct InstanceRaw {

@@ -12,6 +12,8 @@ mod wave_equation;
 mod performance_monitor;
 mod mouse_selector;
 mod refraction_shader;
+mod gui;
+mod wave_sim_gui;
 
 use cgmath::Point3;
 use cgmath::prelude::*;
@@ -44,7 +46,7 @@ struct WaveSimulation
     _pipeline: vertex_color_shader::Pipeline,
     pipeline_lines: vertex_color_shader::Pipeline,
     _texture_bind_group_layout: vertex_texture_shader::TextureBindGroupLayout,
-    _pipeline_texture: vertex_texture_shader::Pipeline,
+    pipeline_texture_gui: vertex_texture_shader::Pipeline,
     _heightmap_bind_group_layout: vertex_heightmap_shader::HeightmapBindGroupLayout,
     pipeline_heightmap: vertex_heightmap_shader::Pipeline,
     pipeline_heightmap_color: vertex_heightmap_shader::Pipeline,
@@ -75,6 +77,7 @@ struct WaveSimulation
     mouse_pressed_forces: bool,
     show_performance_graph: bool,
     show_textured_grid: bool,
+    show_top_viewpoint: bool,
     mouse_selector: mouse_selector::MouseSelector,
 
     // simulation
@@ -84,6 +87,9 @@ struct WaveSimulation
     watch: performance_monitor::Watch<4>,
     graph_host: performance_monitor::Graph,
     graph_device: vertex_color_shader::Mesh,
+
+    // gui
+    gui: wave_sim_gui::WaveSimGui,
 }
 
 impl WaveSimulation
@@ -106,7 +112,7 @@ impl WaveSimulation
             surface_format,
         );
         let texture_bind_group_layout = vertex_texture_shader::TextureBindGroupLayout::new(wgpu_renderer.device());
-        let pipeline_texture = vertex_texture_shader::Pipeline::new(
+        let pipeline_texture_gui = vertex_texture_shader::Pipeline::new_gui(
             wgpu_renderer.device(), 
             &camera_bind_group_layout, 
             &texture_bind_group_layout, 
@@ -216,13 +222,15 @@ impl WaveSimulation
         let diffuse_rgba = diffuse_image.to_rgba8();
 
         let diffuse_texture = vertex_texture_shader::Texture::new(
-            wgpu_renderer.device(), 
+            &mut wgpu_renderer, 
             &texture_bind_group_layout, 
             &diffuse_rgba, 
             Some("pony2.png")).unwrap(); 
-        diffuse_texture.write(wgpu_renderer.queue(), &diffuse_rgba);
 
         let textures = vec![diffuse_texture];
+
+        // gui
+        let gui = wave_sim_gui::WaveSimGui::new(&mut wgpu_renderer, &texture_bind_group_layout, width, height);
 
         // Test data
 
@@ -275,7 +283,7 @@ impl WaveSimulation
             _pipeline: pipeline,
             pipeline_lines,
             _texture_bind_group_layout: texture_bind_group_layout,
-            _pipeline_texture: pipeline_texture,
+            pipeline_texture_gui,
             _heightmap_bind_group_layout: heightmap_bind_group_layout,
             pipeline_heightmap,
             pipeline_heightmap_color,
@@ -302,6 +310,7 @@ impl WaveSimulation
             mouse_pressed_forces: false,
             show_performance_graph: false,
             show_textured_grid: true,
+            show_top_viewpoint: true,
             mouse_selector,
 
             wave_equation,
@@ -309,6 +318,8 @@ impl WaveSimulation
             watch,
             graph_host,
             graph_device,
+
+            gui,
         }
     }
 
@@ -350,6 +361,8 @@ impl WaveSimulation
         self.camera_uniform_orthographic_buffer.update(self.wgpu_renderer.queue(), self.camera_uniform_orthographic);
         
         self.mouse_selector.resize(new_size.width, new_size.height);
+
+        self.gui.resize(self.wgpu_renderer.queue(), new_size.width, new_size.height);
     }
 
     fn apply_scale_factor(&self, position: winit::dpi::PhysicalPosition<f64>) -> winit::dpi::PhysicalPosition<f64> {
@@ -392,6 +405,7 @@ impl WaveSimulation
                 ..
             } => { 
                 Self::top_view_point(&mut self.camera);
+                self.show_top_viewpoint = true;
                 true
             },
             WindowEvent::KeyboardInput {
@@ -404,6 +418,7 @@ impl WaveSimulation
                 ..
             } => { 
                 Self::side_view_point(&mut self.camera);
+                self.show_top_viewpoint = false;
                 true
             },
             WindowEvent::KeyboardInput {
@@ -444,8 +459,15 @@ impl WaveSimulation
                 state,//ElementState::Pressed,
                 ..
             } => {
-                self.mouse_pressed_forces = *state == ElementState::Pressed;
-                self.wave_equation.interupt_mouse();
+                let is_pressed = *state == ElementState::Pressed;
+                
+
+                let (consumed, gui_event) = self.gui.mouse_pressed(is_pressed);
+                self.handle_gui_event(gui_event);
+                if !consumed || !is_pressed {
+                    self.mouse_pressed_forces = is_pressed;
+                    self.wave_equation.interupt_mouse();
+                }
                 true
             } 
             WindowEvent::Touch(touch) => {
@@ -453,19 +475,35 @@ impl WaveSimulation
 
                 match touch.phase {
                     TouchPhase::Started => {
-                        self.mouse_pressed_forces = true;
-                        self.mouse_selector.calc_mouse_position_on_screen(pos.x as f32, pos.y as f32);
+                        let _consumed = self.gui.mouse_moved(pos.x as u32, pos.y as u32);
+                        let (consumed, gui_event) = self.gui.mouse_pressed(true);
+                        self.handle_gui_event(gui_event);
+
+                        if !consumed {
+                            self.mouse_pressed_forces = true;
+                            self.mouse_selector.calc_mouse_position_on_screen(pos.x as f32, pos.y as f32);
+                        }
                     }
                     TouchPhase::Ended => {
+                        let (_consumed, gui_event) = self.gui.mouse_pressed(false);
+                        self.handle_gui_event(gui_event);
+
                         self.mouse_pressed_forces = false;
                         self.wave_equation.interupt_mouse();
                     }
                     TouchPhase::Cancelled => {
+                        let (_consumed, gui_event) = self.gui.mouse_pressed(false);
+                        self.handle_gui_event(gui_event);
+
                         self.mouse_pressed_forces = false;
                         self.wave_equation.interupt_mouse();
                     }
                     TouchPhase::Moved => {
-                        self.mouse_selector.calc_mouse_position_on_screen(pos.x as f32, pos.y as f32);
+                        let consumed = self.gui.mouse_moved(pos.x as u32, pos.y as u32);
+
+                        if !consumed {
+                            self.mouse_selector.calc_mouse_position_on_screen(pos.x as f32, pos.y as f32);
+                        }
                     }
                 }
                 true
@@ -473,10 +511,41 @@ impl WaveSimulation
             WindowEvent::CursorMoved { position, .. } => {
                 let pos = self.apply_scale_factor(*position);
 
-                self.mouse_selector.calc_mouse_position_on_screen(pos.x as f32, pos.y as f32);
+                let consumed = self.gui.mouse_moved(pos.x as u32, pos.y as u32);
+                if !consumed {
+                    self.mouse_selector.calc_mouse_position_on_screen(pos.x as f32, pos.y as f32);
+                }
+
                 true
             }
             _ => false,
+        }
+    }
+
+
+    fn handle_gui_event(&mut self, event: Option<gui::ButtonPressedEvent<wave_sim_gui::ButtonOptionsId>>)
+    {
+        match event {
+            Some(event) => {
+                match event.button_id {
+                    wave_sim_gui::ButtonOptionsId::SwitchViewPoint => {
+                        self.show_top_viewpoint = !self.show_top_viewpoint;
+                        if self.show_top_viewpoint {
+                            Self::top_view_point(&mut self.camera);
+                        }
+                        else {
+                            Self::side_view_point(&mut self.camera);
+                        }
+                    },
+                    wave_sim_gui::ButtonOptionsId::SwitchTexture => {
+                        self.show_textured_grid = !self.show_textured_grid;
+                    },
+                    wave_sim_gui::ButtonOptionsId::PerformanceGraph => {
+                        self.show_performance_graph = !self.show_performance_graph;
+                    },
+                }
+            },
+            None => {},
         }
     }
 
@@ -577,6 +646,11 @@ impl WaveSimulation
                 self.camera_uniform_orthographic_buffer.bind(&mut render_pass);
                 self.graph_device.draw(&mut render_pass);
             }
+
+            // gui
+            self.pipeline_texture_gui.bind(&mut render_pass);
+            self.camera_uniform_orthographic_buffer.bind(&mut render_pass);
+            self.gui.draw(&mut render_pass);
         }
 
         self.watch.start(0);
