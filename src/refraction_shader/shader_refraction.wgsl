@@ -25,6 +25,7 @@ struct InstanceInput {
 struct VertexOutput {
     @builtin(position) clip_position: vec4<f32>,
     @location(0) tex_coords: vec2<f32>,
+    @location(1) reflectivity: f32, // percentage of reflected light, inverse is refracted light
 };
 
 @vertex 
@@ -56,21 +57,33 @@ fn vs_main(
         normal.y = (textureLoad(t_heightmap, index - vec2<u32>(0u,1u), 0).r - textureLoad(t_heightmap, index + vec2<u32>(0u,1u), 0).r)/2.; // -du/dy
     }
 
+    var out: VertexOutput;
+    out.tex_coords = model.tex_coords;
+
     let world_pos = model_matrix * vec4<f32>(model.position.x, model.position.y, posz, 1.0);
     let cam_to_vertex = normalize(world_pos - camera.view_pos).xyz;
     let normal_world = normalize((model_matrix * vec4<f32>(normal, 0.)).xyz);
-    let refraction_index_water = 3./4.;
-    let refracted = refract(cam_to_vertex, normal_world, refraction_index_water);
-    var refracted_local = vec4<f32>(refracted, 0.) * model_matrix; // Transposed multiplication inverts rotations
-    refracted_local.y *= -1.; // Texture y is inverse to coordinate y
-
+    let refraction_index_water = 4./3.;
+    let inv_ref_index = 1. / refraction_index_water;
     let pool_height = 20.;
-    var out: VertexOutput;
-    out.tex_coords = model.tex_coords;
-    //If the refraction did not fail (only a problem with refraction index > 1)
-    if refracted_local.z <= 0. {
+
+    // Fresnel equation with Snell's law
+    let cos_incident = dot(cam_to_vertex, -normal_world);
+    let intermediate = 1. - inv_ref_index*inv_ref_index * (1. - cos_incident*cos_incident);
+    if intermediate >= 0. {
+        let cos_refracted = sqrt(intermediate);
+        let R_s_sqrt = (cos_incident - refraction_index_water * cos_refracted) / (cos_incident + refraction_index_water * cos_refracted);
+        let R_p_sqrt = (cos_refracted - refraction_index_water * cos_incident) / (cos_refracted + refraction_index_water * cos_incident);
+        out.reflectivity = (R_s_sqrt * R_s_sqrt + R_p_sqrt * R_p_sqrt) / 2.;
+
+        let refracted = inv_ref_index * cam_to_vertex + (inv_ref_index * cos_incident - cos_refracted) * normal_world;
+        var refracted_local = vec4<f32>(refracted, 0.) * model_matrix; // Transposed multiplication inverts rotations
+        refracted_local.y *= -1.; // Texture y is inverse to coordinate y
         out.tex_coords -= (refracted_local.xy * (posz + pool_height) / (refracted_local.z)) / vec2<f32>(dim);
+    } else {
+        out.reflectivity = 1.; // total reflection
     }
+
     out.clip_position = camera.view_proj * world_pos;
     return out;
 }
@@ -84,5 +97,8 @@ var s_diffuse: sampler;
 
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-    return textureSample(t_diffuse, s_diffuse, in.tex_coords);
+    let sky_color = vec4<f32>(0.5, 0.5, 1., 1.);
+    // combine refracted light with some reflected sky (subject to change)
+    return (1. - in.reflectivity) * textureSample(t_diffuse, s_diffuse, in.tex_coords) + 
+            in.reflectivity * sky_color;
 }
