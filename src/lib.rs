@@ -13,6 +13,7 @@ mod performance_monitor;
 mod mouse_selector;
 mod refraction_shader;
 mod gui;
+mod wave_sim_gui;
 
 use cgmath::Point3;
 use cgmath::prelude::*;
@@ -85,6 +86,9 @@ struct WaveSimulation
     watch: performance_monitor::Watch<4>,
     graph_host: performance_monitor::Graph,
     graph_device: vertex_color_shader::Mesh,
+
+    // gui
+    gui: wave_sim_gui::WaveSimGui,
 }
 
 impl WaveSimulation
@@ -225,6 +229,9 @@ impl WaveSimulation
 
         let textures = vec![diffuse_texture];
 
+        // gui
+        let gui = wave_sim_gui::WaveSimGui::new(wgpu_renderer.device(), width, height);
+
         // Test data
 
         // const VERTICES: &[vertex_color_shader::Vertex] = &[
@@ -310,6 +317,8 @@ impl WaveSimulation
             watch,
             graph_host,
             graph_device,
+
+            gui,
         }
     }
 
@@ -351,6 +360,8 @@ impl WaveSimulation
         self.camera_uniform_orthographic_buffer.update(self.wgpu_renderer.queue(), self.camera_uniform_orthographic);
         
         self.mouse_selector.resize(new_size.width, new_size.height);
+
+        self.gui.resize(self.wgpu_renderer.queue(), new_size.width, new_size.height);
     }
 
     fn apply_scale_factor(&self, position: winit::dpi::PhysicalPosition<f64>) -> winit::dpi::PhysicalPosition<f64> {
@@ -602,6 +613,11 @@ impl WaveSimulation
                 self.camera_uniform_orthographic_buffer.bind(&mut render_pass);
                 self.graph_device.draw(&mut render_pass);
             }
+
+            // gui
+            self.pipeline.bind(&mut render_pass);
+            self.camera_uniform_orthographic_buffer.bind(&mut render_pass);
+            self.gui.draw(&mut render_pass)
         }
 
         self.watch.start(0);
