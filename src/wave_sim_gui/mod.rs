@@ -1,7 +1,9 @@
 
 
+use crate::wgpu_renderer;
+
 use super::gui::*;
-use super::vertex_color_shader;
+use super::vertex_texture_shader;
 
 #[derive(Debug)]
 #[derive(PartialEq)]
@@ -25,26 +27,35 @@ enum LabelId{
 }
 
 struct BtnMesh {
-    pub color_buffer: vertex_color_shader::ColorBuffer,
-    pub instance_buffer: vertex_color_shader::InstanceBuffer,
+    pub texture: vertex_texture_shader::Texture,
+    pub instance_buffer: vertex_texture_shader::InstanceBuffer,
 }
 
 impl BtnMesh {
-    pub fn new(device: &wgpu::Device, 
-        colors: &[vertex_color_shader::Color],
-        instance: &vertex_color_shader::Instance) -> Self
+    pub fn new(wgpu_renderer: &mut impl wgpu_renderer::WgpuRendererInterface, 
+        texture_bytes: &[u8],
+        texture_bind_group_layout: &vertex_texture_shader::TextureBindGroupLayout,
+        instance: &vertex_texture_shader::Instance) -> Self
     {
-        let color_buffer = vertex_color_shader::ColorBuffer::new(device, colors);
+        let texture_image = image::load_from_memory(texture_bytes).unwrap();
+        let texture_rgba = texture_image.to_rgba8();
+
+        let texture = vertex_texture_shader::Texture::new(
+            wgpu_renderer, 
+            &texture_bind_group_layout, 
+            &texture_rgba, 
+            Some("gui texture")).unwrap(); 
+
         let instance_raw = instance.to_raw();
-        let instance_buffer = vertex_color_shader::InstanceBuffer::new(device, &[instance_raw]);
+        let instance_buffer = vertex_texture_shader::InstanceBuffer::new(wgpu_renderer.device(), &[instance_raw]);
 
         Self {
-            color_buffer,
+            texture,
             instance_buffer,
         }
     }
 
-    pub fn update_instance_buffer(&mut self, queue: &wgpu::Queue, instance: &vertex_color_shader::Instance)
+    pub fn update_instance_buffer(&mut self, queue: &wgpu::Queue, instance: &vertex_texture_shader::Instance)
     {
         let instance_raw = instance.to_raw();
         self.instance_buffer.update(queue, &[instance_raw]);
@@ -52,8 +63,8 @@ impl BtnMesh {
 
     pub fn bind<'a>(&'a self, render_pass: &mut wgpu::RenderPass<'a>,) 
     {
-        self.color_buffer.bind(render_pass);
-        self.instance_buffer.bind(render_pass);
+        self.texture.bind(render_pass);
+        self.instance_buffer.bind_slot(render_pass, 1);
     }
 }
 
@@ -61,8 +72,8 @@ pub struct WaveSimGui {
     width: u32,
     height: u32,
 
-    btn_vertex_buffer: vertex_color_shader::VertexBuffer,
-    btn_index_buffer: vertex_color_shader::IndexBuffer,
+    btn_vertex_buffer: vertex_texture_shader::VertexBuffer,
+    btn_index_buffer: vertex_texture_shader::IndexBuffer,
 
     // Menu
     gui_menu: Gui<ButtonMenuId, LabelId>,
@@ -80,16 +91,19 @@ pub struct WaveSimGui {
 }
 
 impl WaveSimGui {
-    pub fn new(device: &wgpu::Device, width: u32, height: u32) -> Self {
+    pub fn new(wgpu_renderer: &mut impl wgpu_renderer::WgpuRendererInterface, 
+        texture_bind_group_layout: &vertex_texture_shader::TextureBindGroupLayout,
+        width: u32, 
+        height: u32) -> Self {
+
+        let z = 10.1;
         let btn_width = 40;
         let btn_height = 40;
         let btn_boarder = 5;
 
-        let btn_vertex_buffer = vertex_color_shader::VertexBuffer::new(device, &Self::vertices(btn_width, btn_height));
-        let btn_index_buffer = vertex_color_shader::IndexBuffer::new(device, &Self::indices());
+        let btn_vertex_buffer = vertex_texture_shader::VertexBuffer::new(wgpu_renderer.device(), &Self::vertices(btn_width, btn_height));
+        let btn_index_buffer = vertex_texture_shader::IndexBuffer::new(wgpu_renderer.device(), &Self::indices());
 
-        // let default_instance_position = vertex_color_shader::Instance::zero();
-        
         // Menu
         let btn_menu = Button::new(
             btn_width, 
@@ -103,7 +117,7 @@ impl WaveSimGui {
                 AlignedElement::new(Alignment::BottomRight, 10, 10, GuiElement::Button(btn_menu)), 
             ]
         );
-        let mut btn_menu_instance = vertex_color_shader::Instance::zero();
+        let mut btn_menu_instance = vertex_texture_shader::Instance::zero();
         let events = gui_menu.resize(width, height);
         for event in &events {
             match event.element_id {
@@ -112,6 +126,7 @@ impl WaveSimGui {
                         ButtonMenuId::Menu => {
                             btn_menu_instance.position.x = event.x as f32;
                             btn_menu_instance.position.y = event.y as f32;
+                            btn_menu_instance.position.z = z;
                         },
                     }
                 },
@@ -119,7 +134,10 @@ impl WaveSimGui {
             }
         }
 
-        let btn_menu_mesh = BtnMesh::new(device, &Self::colors([0.0, 0.5, 0.5]), &btn_menu_instance);
+        let btn_menu_mesh = BtnMesh::new(wgpu_renderer, 
+            include_bytes!("menu.png"), 
+            texture_bind_group_layout, 
+            &btn_menu_instance);
 
         // Options
         let vertical_layout =  VerticalLayout::<ButtonOptionsId, LabelId>::new(vec![
@@ -127,12 +145,12 @@ impl WaveSimGui {
                 btn_width, 
                 btn_height, 
                 btn_boarder,
-                ButtonOptionsId::SwitchViewPoint)),
+                ButtonOptionsId::SwitchTexture)),
             GuiElement::Button(Button::new(
                 btn_width, 
                 btn_height, 
                 btn_boarder,
-                ButtonOptionsId::SwitchTexture)),
+                ButtonOptionsId::SwitchViewPoint)),
             GuiElement::Button(Button::new(
                 btn_width, 
                 btn_height, 
@@ -146,9 +164,9 @@ impl WaveSimGui {
                 AlignedElement::new(Alignment::BottomRight, 10, 10 + btn_height + 2*btn_boarder, GuiElement::VerticalLayout(vertical_layout)), 
             ]
         );
-        let mut btn_switch_view_point_instance = vertex_color_shader::Instance::zero();
-        let mut btn_switch_texture_instance = vertex_color_shader::Instance::zero();
-        let mut btn_performance_graph_instance = vertex_color_shader::Instance::zero();
+        let mut btn_switch_view_point_instance = vertex_texture_shader::Instance::zero();
+        let mut btn_switch_texture_instance = vertex_texture_shader::Instance::zero();
+        let mut btn_performance_graph_instance = vertex_texture_shader::Instance::zero();
         let events = gui_options.resize(width, height);
         for event in &events {
             match event.element_id {
@@ -157,23 +175,36 @@ impl WaveSimGui {
                         ButtonOptionsId::SwitchViewPoint => {
                             btn_switch_view_point_instance.position.x = event.x as f32;
                             btn_switch_view_point_instance.position.y = event.y as f32;
+                            btn_switch_view_point_instance.position.z = z;
                         },
                         ButtonOptionsId::SwitchTexture => {
                             btn_switch_texture_instance.position.x = event.x as f32;
                             btn_switch_texture_instance.position.y = event.y as f32;
+                            btn_switch_texture_instance.position.z = z;
                         },
                         ButtonOptionsId::PerformanceGraph => {
                             btn_performance_graph_instance.position.x = event.x as f32;
                             btn_performance_graph_instance.position.y = event.y as f32;
+                            btn_performance_graph_instance.position.z = z;
                         },
                     }
                 },
                 ElementId::Label(_) =>  { }
             }
         }
-        let btn_switch_view_point_mesh = BtnMesh::new(device, &Self::colors([0.5, 0.0, 0.0]), &btn_switch_view_point_instance);
-        let btn_switch_texture_mesh = BtnMesh::new(device, &Self::colors([0.0, 0.5, 0.0]), &btn_switch_texture_instance);
-        let btn_performance_graph_mesh = BtnMesh::new(device, &Self::colors([0.0, 0.0, 0.5]), &btn_performance_graph_instance);
+        let btn_switch_view_point_mesh = BtnMesh::new(
+            wgpu_renderer, 
+            include_bytes!("view.png"), 
+            texture_bind_group_layout,
+            &btn_switch_view_point_instance);
+        let btn_switch_texture_mesh = BtnMesh::new(
+            wgpu_renderer, include_bytes!("mode.png"), 
+            texture_bind_group_layout,
+            &btn_switch_texture_instance);
+        let btn_performance_graph_mesh = BtnMesh::new(wgpu_renderer, 
+            include_bytes!("performance.png"), 
+            texture_bind_group_layout,
+            &btn_performance_graph_instance);
 
 
         Self {
@@ -195,28 +226,17 @@ impl WaveSimGui {
         }
     }
 
-    fn colors(color: [f32; 3]) -> [vertex_color_shader::Color; 4]
-    {
-        let colors: [vertex_color_shader::Color; 4] = [
-            vertex_color_shader::Color { color }, // A
-            vertex_color_shader::Color { color }, // B
-            vertex_color_shader::Color { color }, // C
-            vertex_color_shader::Color { color }, // D
-        ];
 
-        colors
-    }
-
-    fn vertices(width: u32, height: u32) -> [vertex_color_shader::Vertex; 4]
+    fn vertices(width: u32, height: u32) -> [vertex_texture_shader::Vertex; 4]
     {
         let width = width as f32;
         let height = height as f32;
 
-        let vertices: [vertex_color_shader::Vertex; 4] = [
-            vertex_color_shader::Vertex { position: [0.0, 0.0, 0.0] }, // A
-            vertex_color_shader::Vertex { position: [width, 0.0, 0.0] }, // B
-            vertex_color_shader::Vertex { position: [width, height, 0.0] }, // C
-            vertex_color_shader::Vertex { position: [0.0, height, 0.0] }, // D
+        let vertices: [vertex_texture_shader::Vertex; 4] = [
+            vertex_texture_shader::Vertex { position: [0.0, 0.0, 0.0], tex_coords: [0.0, 1.0] }, // A
+            vertex_texture_shader::Vertex { position: [width, 0.0, 0.0], tex_coords: [1.0, 1.0] }, // B
+            vertex_texture_shader::Vertex { position: [width, height, 0.0], tex_coords: [1.0, 0.0] }, // C
+            vertex_texture_shader::Vertex { position: [0.0, height, 0.0], tex_coords: [0.0, 0.0] }, // D
         ];
 
         vertices
@@ -318,7 +338,7 @@ impl WaveSimGui {
         self.width = width;
         self.height = height;
 
-        let mut btn_menu_instance = vertex_color_shader::Instance::zero();
+        let mut btn_menu_instance = vertex_texture_shader::Instance::zero();
         let events = self.gui_menu.resize(width, height);
         for event in &events {
             match event.element_id {
@@ -334,9 +354,9 @@ impl WaveSimGui {
             }
         }
 
-        let mut btn_switch_view_point_instance = vertex_color_shader::Instance::zero();
-        let mut btn_switch_texture_instance = vertex_color_shader::Instance::zero();
-        let mut btn_performance_graph_instance = vertex_color_shader::Instance::zero();
+        let mut btn_switch_view_point_instance = vertex_texture_shader::Instance::zero();
+        let mut btn_switch_texture_instance = vertex_texture_shader::Instance::zero();
+        let mut btn_performance_graph_instance = vertex_texture_shader::Instance::zero();
         let events = self.gui_options.resize(width, height);
         for event in &events {
             match event.element_id {

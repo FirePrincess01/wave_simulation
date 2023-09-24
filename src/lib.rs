@@ -46,7 +46,7 @@ struct WaveSimulation
     pipeline: vertex_color_shader::Pipeline,
     pipeline_lines: vertex_color_shader::Pipeline,
     _texture_bind_group_layout: vertex_texture_shader::TextureBindGroupLayout,
-    _pipeline_texture: vertex_texture_shader::Pipeline,
+    pipeline_texture_gui: vertex_texture_shader::Pipeline,
     _heightmap_bind_group_layout: vertex_heightmap_shader::HeightmapBindGroupLayout,
     pipeline_heightmap: vertex_heightmap_shader::Pipeline,
     pipeline_heightmap_color: vertex_heightmap_shader::Pipeline,
@@ -112,7 +112,7 @@ impl WaveSimulation
             surface_format,
         );
         let texture_bind_group_layout = vertex_texture_shader::TextureBindGroupLayout::new(wgpu_renderer.device());
-        let pipeline_texture = vertex_texture_shader::Pipeline::new(
+        let pipeline_texture_gui = vertex_texture_shader::Pipeline::new_gui(
             wgpu_renderer.device(), 
             &camera_bind_group_layout, 
             &texture_bind_group_layout, 
@@ -222,16 +222,15 @@ impl WaveSimulation
         let diffuse_rgba = diffuse_image.to_rgba8();
 
         let diffuse_texture = vertex_texture_shader::Texture::new(
-            wgpu_renderer.device(), 
+            &mut wgpu_renderer, 
             &texture_bind_group_layout, 
             &diffuse_rgba, 
             Some("pony2.png")).unwrap(); 
-        diffuse_texture.write(wgpu_renderer.queue(), &diffuse_rgba);
 
         let textures = vec![diffuse_texture];
 
         // gui
-        let gui = wave_sim_gui::WaveSimGui::new(wgpu_renderer.device(), width, height);
+        let gui = wave_sim_gui::WaveSimGui::new(&mut wgpu_renderer, &texture_bind_group_layout, width, height);
 
         // Test data
 
@@ -284,7 +283,7 @@ impl WaveSimulation
             pipeline,
             pipeline_lines,
             _texture_bind_group_layout: texture_bind_group_layout,
-            _pipeline_texture: pipeline_texture,
+            pipeline_texture_gui,
             _heightmap_bind_group_layout: heightmap_bind_group_layout,
             pipeline_heightmap,
             pipeline_heightmap_color,
@@ -641,18 +640,17 @@ impl WaveSimulation
             self.camera_uniform_buffer.bind(&mut render_pass);
             self.grid_heightmap_device.draw(&mut render_pass, &self.textures);
 
-
-            // gui
-            self.pipeline.bind(&mut render_pass);
-            self.camera_uniform_orthographic_buffer.bind(&mut render_pass);
-            self.gui.draw(&mut render_pass);
-
             // performance monitor
             if self.show_performance_graph {
                 self.pipeline_lines.bind(&mut render_pass);
                 self.camera_uniform_orthographic_buffer.bind(&mut render_pass);
                 self.graph_device.draw(&mut render_pass);
             }
+
+            // gui
+            self.pipeline_texture_gui.bind(&mut render_pass);
+            self.camera_uniform_orthographic_buffer.bind(&mut render_pass);
+            self.gui.draw(&mut render_pass);
         }
 
         self.watch.start(0);
