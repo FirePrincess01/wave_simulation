@@ -19,6 +19,7 @@ pub struct Mesh
     instance_buffer: InstanceBuffer,
 }
 
+#[allow(dead_code)]
 impl Mesh
 {
     pub fn new(device: &wgpu::Device, 

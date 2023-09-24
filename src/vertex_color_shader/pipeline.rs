@@ -12,6 +12,7 @@ use super::super::wgpu_renderer::depth_texture;
 
 
 /// A general purpose shader using vertices, colors and an instance matrix
+#[allow(dead_code)]
 pub struct Pipeline
 {
     render_pipeline: wgpu::RenderPipeline,

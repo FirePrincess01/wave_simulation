@@ -95,35 +95,21 @@ impl<const M:usize, const N:usize>  WaveEquation<M, N>{
             let y_i = y.floor() as usize;
 
             //Add the force to position
-            self.forces[y_i][x_i] += force_strength * (1.-w_y) * (1.-w_x);
-            self.forces[y_i+1][x_i] += force_strength * (w_y) * (1.-w_x);
-            self.forces[y_i][x_i+1] += force_strength * (1.-w_y) * (w_x);
-            self.forces[y_i+1][x_i+1] += force_strength * (w_y) * (w_x);
+            // self.forces[y_i][x_i] += force_strength * (1.-w_y) * (1.-w_x);
+            // self.forces[y_i+1][x_i] += force_strength * (w_y) * (1.-w_x);
+            // self.forces[y_i][x_i+1] += force_strength * (1.-w_y) * (w_x);
+            // self.forces[y_i+1][x_i+1] += force_strength * (w_y) * (w_x);
+
+            self.add_smoothed_force_to_point(x_i, y_i, force_strength * (1.-w_y) * (1.-w_x));
+            self.add_smoothed_force_to_point(x_i, y_i+1, force_strength * (w_y) * (1.-w_x));
+            self.add_smoothed_force_to_point(x_i+1, y_i, force_strength * (1.-w_y) * (w_x));
+            self.add_smoothed_force_to_point(x_i+1, y_i+1, force_strength * (w_y) * (w_x));
         } else {
             self.add_line_force(x, y, force_strength);
         }
         self.x_old = x;
         self.y_old = y;
         self.mouse_interupted = false;
-    }
-
-    // Integral along the line on the unit square for f=x*y
-    fn unit_square_integral(&self, x_in: f32, y_in: f32, x_out: f32, y_out: f32) -> f32 {
-        (2. * x_in * y_in + x_in * y_out + y_in * x_out + 2. * x_out * y_out) / 6.
-    }
-
-    #[allow(clippy::too_many_arguments)]
-    fn add_line_force_to_square(&mut self, x_i: usize, y_i: usize, total_lenght: f32, force: f32, x_in: f32, y_in: f32, x_out: f32, y_out: f32) {
-        let length = f32::sqrt((x_out-x_in) * (x_out-x_in) + (y_out-y_in) * (y_out-y_in));
-        
-        // let factor = length * force / total_lenght;           // scale force with length
-        // let factor = length * force / total_lenght.min(1.); // apply full force along the line
-        let factor = length * force / total_lenght.sqrt().min(total_lenght); // apply full force along the line
-
-        self.forces[y_i][x_i]       += factor * self.unit_square_integral(1.-x_in, 1.-y_in, 1.-x_out, 1.-y_out);
-        self.forces[y_i+1][x_i]     += factor * self.unit_square_integral(1.-x_in, y_in, 1.-x_out, y_out);
-        self.forces[y_i][x_i+1]     += factor * self.unit_square_integral(x_in, 1.-y_in, x_out, 1.-y_out);
-        self.forces[y_i+1][x_i+1]   += factor * self.unit_square_integral(x_in, y_in, x_out, y_out);
     }
 
     fn add_line_force(&mut self, x_new: f32, y_new: f32, force: f32) {
@@ -198,6 +184,50 @@ impl<const M:usize, const N:usize>  WaveEquation<M, N>{
         }
         //final square
         self.add_line_force_to_square(x_i, y_i, total_lenght, force, x_curr, y_curr, x_1 - x_1.floor(), y_1 - y_1.floor());
+    }
+
+
+
+    #[allow(clippy::too_many_arguments)]
+    fn add_line_force_to_square(&mut self, x_i: usize, y_i: usize, total_lenght: f32, force: f32, x_in: f32, y_in: f32, x_out: f32, y_out: f32) {
+        let length = f32::sqrt((x_out-x_in) * (x_out-x_in) + (y_out-y_in) * (y_out-y_in));
+        
+        // let factor = length * force / total_lenght;           // scale force with length
+        // let factor = length * force / total_lenght.min(1.); // apply full force along the line
+        let factor = length * force / total_lenght.sqrt().min(total_lenght); // apply full force along the line
+
+        // self.forces[y_i][x_i]       += factor * self.unit_square_integral(1.-x_in, 1.-y_in, 1.-x_out, 1.-y_out);
+        // self.forces[y_i+1][x_i]     += factor * self.unit_square_integral(1.-x_in, y_in, 1.-x_out, y_out);
+        // self.forces[y_i][x_i+1]     += factor * self.unit_square_integral(x_in, 1.-y_in, x_out, 1.-y_out);
+        // self.forces[y_i+1][x_i+1]   += factor * self.unit_square_integral(x_in, y_in, x_out, y_out);
+
+        self.add_smoothed_force_to_point(x_i, y_i, factor * self.unit_square_integral(1.-x_in, 1.-y_in, 1.-x_out, 1.-y_out));
+        self.add_smoothed_force_to_point(x_i, y_i+1, factor * self.unit_square_integral(1.-x_in, y_in, 1.-x_out, y_out));
+        self.add_smoothed_force_to_point(x_i+1, y_i, factor * self.unit_square_integral(x_in, 1.-y_in, x_out, 1.-y_out));
+        self.add_smoothed_force_to_point(x_i+1, y_i+1, factor * self.unit_square_integral(x_in, y_in, x_out, y_out));
+    }
+
+    // Integral along the line on the unit square for f=x*y
+    fn unit_square_integral(&self, x_in: f32, y_in: f32, x_out: f32, y_out: f32) -> f32 {
+        (2. * x_in * y_in + x_in * y_out + y_in * x_out + 2. * x_out * y_out) / 6.
+    }
+
+    // Adds a force to a given mesh node spread over a 3x3 stencil
+    // Only the specified node needs to be valid, not its neighbors
+    fn add_smoothed_force_to_point(&mut self, x_i: usize, y_i: usize, force: f32) {
+        let force16 = force / 16.;
+
+        self.forces[y_i.saturating_add_signed(-1)][x_i.saturating_add_signed(-1)] += force16 * 1.;
+        self.forces[y_i.saturating_add_signed(-1)][x_i] += force16 * 2.;
+        self.forces[y_i.saturating_add_signed(-1)][(x_i+1).min(N-1)] += force16 * 1.;
+
+        self.forces[y_i][x_i.saturating_add_signed(-1)] += force16 * 2.;
+        self.forces[y_i][x_i] += force16 * 4.;
+        self.forces[y_i][(x_i+1).min(N-1)] += force16 * 2.;
+
+        self.forces[(y_i+1).min(M-1)][x_i.saturating_add_signed(-1)] += force16 * 1.;
+        self.forces[(y_i+1).min(M-1)][x_i] += force16 * 2.;
+        self.forces[(y_i+1).min(M-1)][(x_i+1).min(N-1)] += force16 * 1.;
     }
 
     //Tells the class, that mouse is no longer continuously clicked

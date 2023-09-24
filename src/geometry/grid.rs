@@ -16,6 +16,7 @@ pub struct Grid<const M:usize, const N:usize, const MN: usize> {
     pub heightmap: Box<[[Heightmap; N]; M]>,
 }
 
+#[allow(dead_code)]
 impl<const M:usize, const N:usize, const MN: usize> Grid<M, N, MN> {
     
     /// Creates a triangulated 2D grid
