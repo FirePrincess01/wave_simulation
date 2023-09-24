@@ -1,6 +1,6 @@
 //! Handles the collision detection of gui elements
 
-mod gui_lement;
+mod gui_element;
 mod gui;
 mod aligned_element;
 mod vertical_layout;
@@ -10,7 +10,7 @@ mod label;
 #[cfg(test)]
 mod tests;
 
-pub use gui_lement::GuiElement;
+pub use gui_element::GuiElement;
 pub use gui::Gui;
 pub use gui::ChangePositionEvent;
 pub use gui::ButtonPressedEvent;

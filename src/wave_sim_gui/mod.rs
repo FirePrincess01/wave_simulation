@@ -77,12 +77,10 @@ pub struct WaveSimGui {
 
     // Menu
     gui_menu: Gui<ButtonMenuId, LabelId>,
-    // gui_menu_change_position_events: Vec<ChangePositionEvent<ButtonMenuId, LabelId>>,
     btn_menu_mesh: BtnMesh,
     
     // Options
     gui_options: Gui<ButtonOptionsId, LabelId>,
-    // gui_options_change_position_events: Vec<ChangePositionEvent<ButtonMenuId, LabelId>>,
     btn_switch_view_point_mesh: BtnMesh,
     btn_switch_texture_mesh: BtnMesh,
     btn_performance_graph_mesh: BtnMesh,
