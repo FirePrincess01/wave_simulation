@@ -1,3 +1,4 @@
+//! Fixes a gui element to an edge of the window
 
 use super::GuiElement;
 use super::ChangePositionEvent;

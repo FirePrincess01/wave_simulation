@@ -1,3 +1,4 @@
+//! A clickable button
 
 use super::ButtonPressedEvent;
 use super::ChangePositionEvent;

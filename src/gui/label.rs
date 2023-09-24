@@ -1,3 +1,4 @@
+//! Shows a text label
 
 use super::ChangePositionEvent;
 

@@ -1,3 +1,4 @@
+//! Handles the collision detection of gui elements
 
 mod gui_lement;
 mod gui;

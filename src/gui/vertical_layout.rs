@@ -1,3 +1,4 @@
+//! Arranges gui elements vertically
 
 use super::GuiElement;
 use super::ChangePositionEvent;

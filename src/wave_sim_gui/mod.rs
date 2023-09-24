@@ -1,4 +1,4 @@
-
+//! Gui for the wave simulation app
 
 use crate::wgpu_renderer;
 
