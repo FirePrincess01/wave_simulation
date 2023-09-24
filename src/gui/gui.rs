@@ -2,10 +2,25 @@
 
 use super::AlignedElement;
 
-enum MouseEvent {
-    Pressed(glam::Vec2),
-    Released(glam::Vec2),
-    Moved(glam::Vec2),
+//
+// (x:0, y:height)   (x:width, y:height)
+//     ---------------
+//     |             |
+//     |             |
+//     |             |
+//     |             |
+//     |             |
+//     |             |
+//     ---------------
+//  (x:0, y:0)       (x:width, y:0)
+
+pub enum MouseEvent {
+    Pressed,
+    Released,
+    Moved{
+        x: u32,
+        y: u32,
+    }
 }
 
 pub enum ElementId<ButtonId, LabelId>
@@ -15,9 +30,9 @@ pub enum ElementId<ButtonId, LabelId>
 }
 
 pub struct ChangePositionEvent<ButtonId, LabelId>{
-    element_id: ElementId<ButtonId, LabelId>,
-    x: u32,
-    y: u32,
+    pub element_id: ElementId<ButtonId, LabelId>,
+    pub x: u32,
+    pub y: u32,
 }
 
 impl<ButtonId, LabelId> ChangePositionEvent<ButtonId, LabelId> {
@@ -48,10 +63,9 @@ impl<ButtonId, LabelId> ChangePositionEvent<ButtonId, LabelId> {
     }
 }
 
-pub struct ButtonPressedEvent<ElementId>{
-    element_id: ElementId,
+pub struct ButtonPressedEvent<ButtonId>{
+    pub button_id: ButtonId,
 }
-
 
 pub struct Gui<ButtonId, LabelId> 
 where LabelId: Copy,
@@ -59,6 +73,9 @@ where LabelId: Copy,
 {
     width: u32,
     height: u32,
+
+    mouse_pos_x: u32,
+    mouse_pos_y: u32,
 
     elements: Vec<AlignedElement<ButtonId, LabelId>>,
 }
@@ -68,11 +85,19 @@ where LabelId: Copy,
     ButtonId: Copy,
 {
     pub fn new(width: u32, height: u32, elements: Vec<AlignedElement<ButtonId, LabelId>>) -> Self {
-        Self {
+        let mut gui = Self {
             width,
             height,
+
+            mouse_pos_x: 0,
+            mouse_pos_y: 0,
+            
             elements,
-        }
+        };
+
+        gui.resize(width, height);  // resize runs through all the elements
+
+        gui
     }
 
     pub fn resize(&mut self, width: u32, height: u32) -> Vec<ChangePositionEvent<ButtonId, LabelId>> {
@@ -88,8 +113,31 @@ where LabelId: Copy,
         res
     }
 
-    pub fn mouse_event(&self, mouse_event: &MouseEvent) -> (bool, Option<ButtonPressedEvent<ButtonId>>) {
+    pub fn mouse_event(&mut self, mouse_event: MouseEvent) -> (bool, Option<ButtonPressedEvent<ButtonId>>) {
         
+        match mouse_event {
+            MouseEvent::Pressed => {
+                for elem in &mut self.elements {
+                    let (consumed, res) = elem.mouse_pressed(self.mouse_pos_x, self.mouse_pos_y);
+                    if consumed {
+                        return (consumed, res);
+                    }
+                }
+            },
+            MouseEvent::Released => {
+                for elem in &mut self.elements {
+                    let (consumed, res) = elem.mouse_released(self.mouse_pos_x, self.mouse_pos_y);
+                    if consumed {
+                        return (consumed, res);
+                    }
+                }
+            },
+            MouseEvent::Moved { x, y } => {
+                self.mouse_pos_x = x;
+                self.mouse_pos_y = y;
+            },
+        }
+
         (false, None)
     }
 }
