@@ -1611,6 +1611,7 @@ dependencies = [
  "wasm-bindgen-futures",
  "web-sys",
  "wgpu",
+ "wgpu_renderer",
  "winit",
 ]
 
@@ -1794,6 +1795,32 @@ dependencies = [
  "bitflags 2.4.0",
  "js-sys",
  "web-sys",
+]
+
+[[package]]
+name = "wgpu_renderer"
+version = "0.1.0"
+source = "git+https://github.com/FirePrincess01/wgpu_renderer.git?branch=main#898eb7d23063dd2cb24f43a4daf21340e376bc9e"
+dependencies = [
+ "anyhow",
+ "bytemuck",
+ "cfg-if",
+ "cgmath",
+ "colorous",
+ "console_error_panic_hook",
+ "console_log",
+ "env_logger",
+ "glam",
+ "image",
+ "instant",
+ "log",
+ "pollster",
+ "rusttype",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
+ "wgpu",
+ "winit",
 ]
 
 [[package]]

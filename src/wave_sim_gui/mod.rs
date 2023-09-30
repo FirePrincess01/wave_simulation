@@ -1,6 +1,6 @@
 //! Gui for the wave simulation app
 
-use crate::wgpu_renderer;
+use crate::renderer;
 
 use super::gui;
 use super::vertex_texture_shader;
@@ -34,7 +34,7 @@ struct BtnMesh {
 }
 
 impl BtnMesh {
-    pub fn new(wgpu_renderer: &mut impl wgpu_renderer::WgpuRendererInterface, 
+    pub fn new(wgpu_renderer: &mut impl renderer::WgpuRendererInterface, 
         texture_bytes: &[u8],
         texture_bind_group_layout: &vertex_texture_shader::TextureBindGroupLayout,
         instance: &vertex_texture_shader::Instance) -> Self
@@ -94,7 +94,7 @@ pub struct WaveSimGui {
 }
 
 impl WaveSimGui {
-    pub fn new(wgpu_renderer: &mut impl wgpu_renderer::WgpuRendererInterface, 
+    pub fn new(wgpu_renderer: &mut impl renderer::WgpuRendererInterface, 
         texture_bind_group_layout: &vertex_texture_shader::TextureBindGroupLayout,
         width: u32, 
         height: u32,

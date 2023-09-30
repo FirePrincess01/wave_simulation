@@ -3,21 +3,24 @@
 //! The main file of the application
 //!
 
-mod vertex_color_shader;
-mod vertex_texture_shader;
-mod vertex_heightmap_shader;
-mod wgpu_renderer;
 mod geometry;
 mod wave_equation;
-mod performance_monitor;
 mod mouse_selector;
 mod refraction_shader;
-mod gui;
 mod wave_sim_gui;
-mod label;
 
 use cgmath::Point3;
 use cgmath::prelude::*;
+use wgpu_renderer::{
+    vertex_color_shader,
+    vertex_texture_shader,
+    vertex_heightmap_shader,
+    performance_monitor,
+    renderer,
+    freefont,
+    gui,
+    label,
+};
 
 use winit::{
     event::*,
@@ -44,7 +47,7 @@ struct WaveSimulation
     scale_factor: f32,
 
     // wgpu_renderer
-    wgpu_renderer : wgpu_renderer::WgpuRenderer,
+    wgpu_renderer : renderer::WgpuRenderer,
     _camera_bind_group_layout: vertex_color_shader::CameraBindGroupLayout,
     _pipeline: vertex_color_shader::Pipeline,
     pipeline_lines: vertex_color_shader::Pipeline,
@@ -55,9 +58,9 @@ struct WaveSimulation
     pipeline_heightmap_color: vertex_heightmap_shader::Pipeline,
 
     // camera
-    camera: wgpu_renderer::camera::Camera,
-    camera_controller: wgpu_renderer::camera::CameraController,
-    projection: wgpu_renderer::camera::Projection,
+    camera: renderer::camera::Camera,
+    camera_controller: renderer::camera::CameraController,
+    projection: renderer::camera::Projection,
 
     camera_uniform: vertex_color_shader::CameraUniform,
     camera_uniform_buffer: vertex_color_shader::CameraUniformBuffer,
@@ -105,7 +108,7 @@ impl WaveSimulation
     {
         let size = window.inner_size();
         let scale_factor = window.scale_factor() as f32;
-        let mut wgpu_renderer = wgpu_renderer::WgpuRenderer::new(window).await;
+        let mut wgpu_renderer = renderer::WgpuRenderer::new(window).await;
         let surface_format = wgpu_renderer.config().format;
         let camera_bind_group_layout = vertex_color_shader::CameraBindGroupLayout::new(wgpu_renderer.device());
         let pipeline = vertex_color_shader::Pipeline::new(
@@ -145,19 +148,19 @@ impl WaveSimulation
         let position = Point3::new(0.0, 0.0, 0.0);
         let yaw = cgmath::Deg(0.0);
         let pitch = cgmath::Deg(0.0);
-        let mut camera = wgpu_renderer::camera::Camera::new(position, yaw, pitch);
+        let mut camera = renderer::camera::Camera::new(position, yaw, pitch);
         Self::top_view_point(&mut camera);
 
         let speed = 1.0;
         let sensitivity = 1.0;
-        let camera_controller = wgpu_renderer::camera::CameraController::new(speed, sensitivity);
+        let camera_controller = renderer::camera::CameraController::new(speed, sensitivity);
 
         let width = wgpu_renderer.config().width;
         let height = wgpu_renderer.config().height;
         let fovy = cgmath::Deg(45.0);
         let znear = 0.1;
         let zfar = 100.0;
-        let projection = wgpu_renderer::camera::Projection::new(width, height, fovy, znear, zfar);
+        let projection = renderer::camera::Projection::new(width, height, fovy, znear, zfar);
 
         let camera_uniform = vertex_color_shader::CameraUniform::new();
 
@@ -239,8 +242,7 @@ impl WaveSimulation
         let fps = performance_monitor::Fps::new();
 
         // gui
-        let font_data = include_bytes!("./freefont/FreeMono.ttf");
-        let font = rusttype::Font::try_from_bytes(font_data as &[u8]).expect("Error constructing Font");
+        let font = wgpu_renderer::freefont::create_font_free_mono();
         let gui = wave_sim_gui::WaveSimGui::new(&mut wgpu_renderer, 
             &texture_bind_group_layout, 
             width, 
@@ -349,7 +351,7 @@ impl WaveSimulation
         self.scale_factor = scale_factor;
     }
 
-    fn top_view_point(camera: &mut wgpu_renderer::camera::Camera) {
+    fn top_view_point(camera: &mut renderer::camera::Camera) {
         let position = Point3::new(0.0, 0.0, 67.0*4.0);
         let yaw = cgmath::Deg(-90.0).into();
         let pitch = cgmath::Deg(0.0).into();
@@ -359,7 +361,7 @@ impl WaveSimulation
         camera.pitch = pitch;
     }
 
-    fn side_view_point(camera: &mut wgpu_renderer::camera::Camera) {
+    fn side_view_point(camera: &mut renderer::camera::Camera) {
         let position = Point3::new(0.0, -(50.0 * 4.0), 55.0);
         let yaw = cgmath::Deg(-90.0).into();
         let pitch = cgmath::Deg(60.0).into();
