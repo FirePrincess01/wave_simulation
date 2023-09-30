@@ -1,6 +1,6 @@
 //! Calcutes the direction the mouse is pointing at analogous to the camera, and determines the point on a plane clicked on by the mouse 
 //! 
-use crate::{vertex_color_shader::Instance, wgpu_renderer::camera::Camera};
+use crate::{vertex_color_shader::Instance, renderer::camera::Camera};
 
 pub struct MouseSelector
 {
