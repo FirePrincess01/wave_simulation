@@ -2,8 +2,11 @@
 
 use crate::wgpu_renderer;
 
-use super::gui::*;
+use super::gui;
 use super::vertex_texture_shader;
+use super::label;
+use rusttype;
+use wgpu::Label;
 
 #[derive(Debug)]
 #[derive(PartialEq)]
@@ -23,7 +26,7 @@ enum ButtonMenuId{
 
 #[derive(Copy, Clone)]
 enum LabelId{
-
+    Fps
 }
 
 struct BtnMesh {
@@ -76,14 +79,17 @@ pub struct WaveSimGui {
     btn_index_buffer: vertex_texture_shader::IndexBuffer,
 
     // Menu
-    gui_menu: Gui<ButtonMenuId, LabelId>,
+    gui_menu: gui::Gui<ButtonMenuId, LabelId>,
     btn_menu_mesh: BtnMesh,
     
     // Options
-    gui_options: Gui<ButtonOptionsId, LabelId>,
+    gui_options: gui::Gui<ButtonOptionsId, LabelId>,
     btn_switch_view_point_mesh: BtnMesh,
     btn_switch_texture_mesh: BtnMesh,
     btn_performance_graph_mesh: BtnMesh,
+
+    lbl_fps_host: label::Label,
+    lbl_fps_mesh: label::LabelMesh, 
 
     show_submenu: bool,
 }
@@ -92,7 +98,8 @@ impl WaveSimGui {
     pub fn new(wgpu_renderer: &mut impl wgpu_renderer::WgpuRendererInterface, 
         texture_bind_group_layout: &vertex_texture_shader::TextureBindGroupLayout,
         width: u32, 
-        height: u32) -> Self {
+        height: u32,
+        font: &rusttype::Font) -> Self {
 
         let z = 10.1;
         let btn_width = 40;
@@ -103,23 +110,23 @@ impl WaveSimGui {
         let btn_index_buffer = vertex_texture_shader::IndexBuffer::new(wgpu_renderer.device(), &Self::indices());
 
         // Menu
-        let btn_menu = Button::new(
+        let btn_menu = gui::Button::new(
             btn_width, 
             btn_height, 
             btn_boarder,
             ButtonMenuId::Menu);
-        let mut gui_menu = Gui::<ButtonMenuId, LabelId>::new(
+        let mut gui_menu = gui::Gui::<ButtonMenuId, LabelId>::new(
             width,
             height,
             vec![
-                AlignedElement::new(Alignment::BottomRight, 10, 10, GuiElement::Button(btn_menu)), 
+                gui::AlignedElement::new(gui::Alignment::BottomRight, 10, 10, gui::GuiElement::Button(btn_menu)), 
             ]
         );
         let mut btn_menu_instance = vertex_texture_shader::Instance::zero();
         let events = gui_menu.resize(width, height);
         for event in &events {
             match event.element_id {
-                ElementId::Button(button_id) => {
+                gui::ElementId::Button(button_id) => {
                     match button_id {
                         ButtonMenuId::Menu => {
                             btn_menu_instance.position.x = event.x as f32;
@@ -128,7 +135,7 @@ impl WaveSimGui {
                         },
                     }
                 },
-                ElementId::Label(_) =>  { }
+                gui::ElementId::Label(_) =>  { }
             }
         }
 
@@ -137,38 +144,57 @@ impl WaveSimGui {
             texture_bind_group_layout, 
             &btn_menu_instance);
 
+
+        let lbl_fps_host = label::Label::new(
+            &font, 20.0, "60 fps  "
+        );
+
         // Options
-        let vertical_layout =  VerticalLayout::<ButtonOptionsId, LabelId>::new(vec![
-            GuiElement::Button(Button::new(
+        let vertical_layout =  gui::VerticalLayout::<ButtonOptionsId, LabelId>::new(vec![
+            gui::GuiElement::Button(gui::Button::new(
                 btn_width, 
                 btn_height, 
                 btn_boarder,
                 ButtonOptionsId::SwitchTexture)),
-            GuiElement::Button(Button::new(
+            gui::GuiElement::Button(gui::Button::new(
                 btn_width, 
                 btn_height, 
                 btn_boarder,
                 ButtonOptionsId::SwitchViewPoint)),
-            GuiElement::Button(Button::new(
+            gui::GuiElement::Button(gui::Button::new(
                 btn_width, 
                 btn_height, 
                 btn_boarder,
                 ButtonOptionsId::PerformanceGraph)), 
         ]);
-        let mut gui_options = Gui::<ButtonOptionsId, LabelId>::new(
+        let mut gui_options = gui::Gui::<ButtonOptionsId, LabelId>::new(
             width,
             height,
             vec![
-                AlignedElement::new(Alignment::BottomRight, 10, 10 + btn_height + 2*btn_boarder, GuiElement::VerticalLayout(vertical_layout)), 
-            ]
+                gui::AlignedElement::new(
+                    gui::Alignment::BottomRight, 
+                    10, 
+                    10 + btn_height + 2*btn_boarder, 
+                    gui::GuiElement::VerticalLayout(vertical_layout)), 
+                gui::AlignedElement::new(
+                    gui::Alignment::TopLeft, 
+                    5, 
+                    5, 
+                    gui::GuiElement::Label(gui::Label::new(
+                        lbl_fps_host.width(), 
+                        lbl_fps_host.height(), 
+                        btn_boarder,
+                        LabelId::Fps))),                    
+        ]
         );
+        let mut lbl_fps_instance = vertex_texture_shader::Instance::zero();
         let mut btn_switch_view_point_instance = vertex_texture_shader::Instance::zero();
         let mut btn_switch_texture_instance = vertex_texture_shader::Instance::zero();
         let mut btn_performance_graph_instance = vertex_texture_shader::Instance::zero();
         let events = gui_options.resize(width, height);
         for event in &events {
             match event.element_id {
-                ElementId::Button(button_id) => {
+                gui::ElementId::Button(button_id) => {
                     match button_id {
                         ButtonOptionsId::SwitchViewPoint => {
                             btn_switch_view_point_instance.position.x = event.x as f32;
@@ -187,7 +213,15 @@ impl WaveSimGui {
                         },
                     }
                 },
-                ElementId::Label(_) =>  { }
+                gui::ElementId::Label(label_id) =>  {
+                    match label_id {
+                        LabelId::Fps => {
+                            lbl_fps_instance.position.x = event.x as f32;
+                            lbl_fps_instance.position.y = event.y as f32;
+                            lbl_fps_instance.position.z = z;
+                        },
+                    }
+                 }
             }
         }
         let btn_switch_view_point_mesh = BtnMesh::new(
@@ -203,6 +237,13 @@ impl WaveSimGui {
             include_bytes!("performance.png"), 
             texture_bind_group_layout,
             &btn_performance_graph_instance);
+
+        let lbl_fps_mesh = label::LabelMesh::new(wgpu_renderer, 
+            lbl_fps_host.get_image(), 
+            texture_bind_group_layout,
+            &btn_performance_graph_instance);
+
+        // lbl_fps_host.get_image().save("fps_image.png").unwrap();
 
 
         Self {
@@ -220,7 +261,11 @@ impl WaveSimGui {
             btn_switch_texture_mesh,
             btn_performance_graph_mesh,
 
+            lbl_fps_host,
+            lbl_fps_mesh,
+
             show_submenu: false,
+
         }
     }
 
@@ -255,7 +300,7 @@ impl WaveSimGui {
         // change from mouse coordinate system to the gui coordinate system
         let y = self.height - y.min(self.height);
 
-        let mouse_event = MouseEvent::Moved{ x, y };
+        let mouse_event = gui::MouseEvent::Moved{ x, y };
 
         let (consumed, _events) = self.gui_menu.mouse_event(mouse_event);
         if consumed {
@@ -272,12 +317,12 @@ impl WaveSimGui {
         return false;
     }
 
-    pub fn mouse_pressed(&mut self, pressed: bool) -> (bool, Option<ButtonPressedEvent<ButtonOptionsId>>)
+    pub fn mouse_pressed(&mut self, pressed: bool) -> (bool, Option<gui::ButtonPressedEvent<ButtonOptionsId>>)
     {
         let mouse_event = if pressed {
-                MouseEvent::Pressed
+                gui::MouseEvent::Pressed
             } else {
-                MouseEvent::Released
+                gui::MouseEvent::Released
             };
 
         let (consumed, event) = self.gui_menu.mouse_event(mouse_event);
@@ -303,12 +348,19 @@ impl WaveSimGui {
         (false, None)
     }
 
-    fn handle_gui_menu_event(&mut self, event: ButtonPressedEvent<ButtonMenuId>) {
+    fn handle_gui_menu_event(&mut self, event: gui::ButtonPressedEvent<ButtonMenuId>) {
         match event.button_id {
             ButtonMenuId::Menu => {
                 self.show_submenu = !self.show_submenu;
             },
         }
+    }
+
+    pub fn set_fps<'a>(&mut self, queue: &wgpu::Queue, font: &'a rusttype::Font, fps: u32) {
+
+        let text = fps.to_string() + " fps";
+        self.lbl_fps_host.update(font, &text);
+        self.lbl_fps_mesh.update_texture(queue, self.lbl_fps_host.get_image());
     }
 
     pub fn draw<'a>(&'a self, render_pass: &mut wgpu::RenderPass<'a>)
@@ -320,6 +372,9 @@ impl WaveSimGui {
         render_pass.draw_indexed(0..self.btn_index_buffer.size(), 0, 0..1);
 
         if self.show_submenu {
+            
+            render_pass.draw_indexed(0..self.btn_index_buffer.size(), 0, 0..1);
+
             self.btn_switch_view_point_mesh.bind(render_pass);
             render_pass.draw_indexed(0..self.btn_index_buffer.size(), 0, 0..1);
 
@@ -328,6 +383,8 @@ impl WaveSimGui {
 
             self.btn_performance_graph_mesh.bind(render_pass);
             render_pass.draw_indexed(0..self.btn_index_buffer.size(), 0, 0..1);
+
+            self.lbl_fps_mesh.draw(render_pass);
         }
     }
 
@@ -340,7 +397,7 @@ impl WaveSimGui {
         let events = self.gui_menu.resize(width, height);
         for event in &events {
             match event.element_id {
-                ElementId::Button(button_id) => {
+                gui::ElementId::Button(button_id) => {
                     match button_id {
                         ButtonMenuId::Menu => {
                             btn_menu_instance.position.x = event.x as f32;
@@ -348,17 +405,18 @@ impl WaveSimGui {
                         },
                     }
                 },
-                ElementId::Label(_) =>  { }
+                gui::ElementId::Label(_) =>  { }
             }
         }
 
+        let mut lbl_fps_instance = vertex_texture_shader::Instance::zero();
         let mut btn_switch_view_point_instance = vertex_texture_shader::Instance::zero();
         let mut btn_switch_texture_instance = vertex_texture_shader::Instance::zero();
         let mut btn_performance_graph_instance = vertex_texture_shader::Instance::zero();
         let events = self.gui_options.resize(width, height);
         for event in &events {
             match event.element_id {
-                ElementId::Button(button_id) => {
+                gui::ElementId::Button(button_id) => {
                     match button_id {
                         ButtonOptionsId::SwitchViewPoint => {
                             btn_switch_view_point_instance.position.x = event.x as f32;
@@ -374,11 +432,19 @@ impl WaveSimGui {
                         },
                     }
                 },
-                ElementId::Label(_) =>  { }
+                gui::ElementId::Label(label_id) =>  { 
+                    match label_id {
+                        LabelId::Fps => {
+                            lbl_fps_instance.position.x = event.x as f32;
+                            lbl_fps_instance.position.y = event.y as f32;
+                        },
+                    }
+                }
             }
         }
 
         self.btn_menu_mesh.update_instance_buffer(queue, &btn_menu_instance);
+        self.lbl_fps_mesh.update_instance_buffer(queue, &lbl_fps_instance);
         self.btn_switch_view_point_mesh.update_instance_buffer(queue, &btn_switch_view_point_instance);
         self.btn_switch_texture_mesh.update_instance_buffer(queue, &btn_switch_texture_instance);
         self.btn_performance_graph_mesh.update_instance_buffer(queue, &btn_performance_graph_instance);

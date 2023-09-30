@@ -14,6 +14,7 @@ mod mouse_selector;
 mod refraction_shader;
 mod gui;
 mod wave_sim_gui;
+mod label;
 
 use cgmath::Point3;
 use cgmath::prelude::*;
@@ -23,6 +24,8 @@ use winit::{
     event_loop::{ControlFlow, EventLoop},
     window::{WindowBuilder, Window},
 };
+
+use rusttype;
 
 #[cfg(target_arch="wasm32")]
 use wasm_bindgen::prelude::*;
@@ -88,7 +91,11 @@ struct WaveSimulation
     graph_host: performance_monitor::Graph,
     graph_device: vertex_color_shader::Mesh,
 
+    // fps
+    fps: performance_monitor::Fps,
+
     // gui
+    font: rusttype::Font<'static>,
     gui: wave_sim_gui::WaveSimGui,
 }
 
@@ -229,8 +236,16 @@ impl WaveSimulation
 
         let textures = vec![diffuse_texture];
 
+        let fps = performance_monitor::Fps::new();
+
         // gui
-        let gui = wave_sim_gui::WaveSimGui::new(&mut wgpu_renderer, &texture_bind_group_layout, width, height);
+        let font_data = include_bytes!("./freefont/FreeMono.ttf");
+        let font = rusttype::Font::try_from_bytes(font_data as &[u8]).expect("Error constructing Font");
+        let gui = wave_sim_gui::WaveSimGui::new(&mut wgpu_renderer, 
+            &texture_bind_group_layout, 
+            width, 
+            height, 
+            &font);
 
         // Test data
 
@@ -319,6 +334,9 @@ impl WaveSimulation
             graph_host,
             graph_device,
 
+            fps,
+
+            font,
             gui,
         }
     }
@@ -593,6 +611,10 @@ impl WaveSimulation
         self.watch.update();
         self.watch.update_viewer(&mut self.graph_host);
         self.graph_device.update_vertex_buffer(self.wgpu_renderer.queue(), self.graph_host.vertices.as_slice());
+    
+        // gui
+        self.fps.update(dt);
+        self.gui.set_fps(self.wgpu_renderer.queue(), &self.font, self.fps.get());
     }
 
     fn render(&mut self) -> Result<(), wgpu::SurfaceError> {

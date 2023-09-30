@@ -91,8 +91,15 @@ impl WgpuRenderer
             format: surface_format,
             width: size.width,
             height: size.height,
-            present_mode: surface_caps.present_modes[0],    // vsync on
-            // present_mode: surface_caps.present_modes[1],    // vsync off
+            present_mode: {
+                if surface_caps.present_modes.len() >= 2 {
+                    // surface_caps.present_modes[0]  // vsync on
+                    surface_caps.present_modes[1]  // vsync off
+                }
+                else {
+                    surface_caps.present_modes[0]
+                }
+            },           
             alpha_mode: surface_caps.alpha_modes[0],
             view_formats: vec![]
         };
