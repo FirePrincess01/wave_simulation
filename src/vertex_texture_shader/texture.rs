@@ -75,7 +75,7 @@ impl Texture {
         Ok(Self { texture, view, sampler, bind_group })
     }
 
-    pub fn write_texture(queue: &wgpu::Queue, texture: &wgpu::Texture, rgba: &image::ImageBuffer<image::Rgba<u8>, Vec<u8>>)
+    fn write_texture(queue: &wgpu::Queue, texture: &wgpu::Texture, rgba: &image::ImageBuffer<image::Rgba<u8>, Vec<u8>>)
     {
         let dimensions = rgba.dimensions();
         let size = wgpu::Extent3d {
@@ -101,7 +101,7 @@ impl Texture {
         );
     }
 
-    pub fn _write(&self, queue: &wgpu::Queue, rgba: &image::ImageBuffer<image::Rgba<u8>, Vec<u8>>, ) 
+    pub fn write(&self, queue: &wgpu::Queue, rgba: &image::ImageBuffer<image::Rgba<u8>, Vec<u8>>, ) 
     {
         Self::write_texture(queue, &self.texture, rgba);
     }

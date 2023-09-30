@@ -163,28 +163,28 @@ fn call_resize() -> Result<(), String> {
             gui::ElementId::Button(button_id) => {
                 match button_id {
                     ButtonId::SwitchTexture => {
-                        assert_eq!(event.x, gui_width - 60);
-                        assert_eq!(event.y, 10 + 2*40);
+                        assert_eq!(event.x, gui_width - 55);
+                        assert_eq!(event.y, 15 + 2*40);
                     },
                     ButtonId::SwitchViewPoint => {
-                        assert_eq!(event.x, gui_width - 60);
-                        assert_eq!(event.y, 10 + 1*40);
+                        assert_eq!(event.x, gui_width - 55);
+                        assert_eq!(event.y, 15 + 1*40);
                     },
                     ButtonId::PerformanceGraph => {
-                        assert_eq!(event.x, gui_width - 60);
-                        assert_eq!(event.y, 10);
+                        assert_eq!(event.x, gui_width - 55);
+                        assert_eq!(event.y, 15);
                     },
                 }
             },
             gui::ElementId::Label(label_id) =>  {
                 match label_id {
                     LabelId::Fps => {
-                        assert_eq!(event.x, gui_width - 60);
-                        assert_eq!(event.y, 10 + 3*40);
+                        assert_eq!(event.x, gui_width - 55);
+                        assert_eq!(event.y, 15 + 3*40);
                     },
                     LabelId::Menu => {
-                        assert_eq!(event.x, gui_width - 60);
-                        assert_eq!(event.y, 10 + 4*40);
+                        assert_eq!(event.x, gui_width - 55);
+                        assert_eq!(event.y, 15 + 4*40);
                     },
                 }
             },
