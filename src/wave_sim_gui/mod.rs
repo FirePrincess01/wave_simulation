@@ -6,7 +6,6 @@ use super::gui;
 use super::vertex_texture_shader;
 use super::label;
 use rusttype;
-use wgpu::Label;
 
 #[derive(Debug)]
 #[derive(PartialEq)]

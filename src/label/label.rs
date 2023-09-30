@@ -68,7 +68,7 @@ impl Label {
     fn clear_image(image: &mut image::ImageBuffer<image::Rgba<u8>, Vec<u8>>)
     {
         // let bla = image.enumerate_pixels();
-        for (x, y, val) in image.enumerate_pixels_mut() {
+        for (_x, _y, val) in image.enumerate_pixels_mut() {
             *val = image::Rgba([0, 0, 0, 0 as u8]);
         }
     }
